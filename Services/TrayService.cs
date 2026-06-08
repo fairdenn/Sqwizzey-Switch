@@ -1,8 +1,8 @@
-using SwizzeySwitch.Models;
+using SqwizzeySwitch.Models;
 using System.Drawing;
 using System.Windows.Forms;
 
-namespace SwizzeySwitch.Services;
+namespace SqwizzeySwitch.Services;
 
 public sealed class TrayService : IDisposable
 {
@@ -20,7 +20,7 @@ public sealed class TrayService : IDisposable
         _notifyIcon = new NotifyIcon
         {
             Visible = true,
-            Text    = "Swizzey Switch — keyboard layout indicator",
+            Text    = "Sqwizzey Switch — keyboard layout indicator",
             Icon    = BuildTrayIcon()
         };
 

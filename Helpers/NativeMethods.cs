@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 
-namespace SwizzeySwitch.Helpers;
+namespace SqwizzeySwitch.Helpers;
 
 internal static class NativeMethods
 {

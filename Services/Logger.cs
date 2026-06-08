@@ -1,10 +1,10 @@
-namespace SwizzeySwitch.Services;
+namespace SqwizzeySwitch.Services;
 
 public static class Logger
 {
     private static readonly string LogPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-        "SwizzeySwitch", "log.txt");
+        "SqwizzeySwitch", "log.txt");
 
     private static readonly object _sync = new();
 

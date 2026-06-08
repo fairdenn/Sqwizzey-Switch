@@ -1,10 +1,10 @@
 using Microsoft.Win32;
 
-namespace SwizzeySwitch.Services;
+namespace SqwizzeySwitch.Services;
 
 public static class StartupService
 {
-    private const string AppName     = "SwizzeySwitch";
+    private const string AppName     = "SqwizzeySwitch";
     private const string RegistryRun = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
 
     public static bool IsEnabled()

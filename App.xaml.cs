@@ -1,8 +1,8 @@
-using SwizzeySwitch.Models;
-using SwizzeySwitch.Services;
+using SqwizzeySwitch.Models;
+using SqwizzeySwitch.Services;
 using System.Windows;
 
-namespace SwizzeySwitch;
+namespace SqwizzeySwitch;
 
 public partial class App : Application
 {
@@ -17,7 +17,7 @@ public partial class App : Application
     {
         base.OnStartup(e);
 
-        _mutex = new System.Threading.Mutex(true, "SwizzeySwitch_SingleInstance_v1", out bool isNew);
+        _mutex = new System.Threading.Mutex(true, "SqwizzeySwitch_SingleInstance_v1", out bool isNew);
         if (!isNew)
         {
             Shutdown();
@@ -49,8 +49,8 @@ public partial class App : Application
         {
             Logger.Log(ex, nameof(OnStartup));
             MessageBox.Show(
-                $"Swizzey Switch failed to start.\nSee log for details.\n\n{ex.Message}",
-                "SwizzeySwitch", MessageBoxButton.OK, MessageBoxImage.Error);
+                $"Sqwizzey Switch failed to start.\nSee log for details.\n\n{ex.Message}",
+                "SqwizzeySwitch", MessageBoxButton.OK, MessageBoxImage.Error);
             Shutdown();
         }
     }

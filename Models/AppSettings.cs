@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace SwizzeySwitch.Models;
+namespace SqwizzeySwitch.Models;
 
 public class AppSettings
 {
@@ -24,7 +24,7 @@ public class AppSettings
 
     private static readonly string SettingsPath = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-        "SwizzeySwitch", "settings.json");
+        "SqwizzeySwitch", "settings.json");
 
     public static AppSettings Load()
     {

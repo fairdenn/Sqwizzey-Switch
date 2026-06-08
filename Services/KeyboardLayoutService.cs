@@ -1,7 +1,7 @@
-using SwizzeySwitch.Helpers;
+using SqwizzeySwitch.Helpers;
 using System.Globalization;
 
-namespace SwizzeySwitch.Services;
+namespace SqwizzeySwitch.Services;
 
 /// <summary>
 /// Polls the active window's keyboard layout every 150 ms and fires

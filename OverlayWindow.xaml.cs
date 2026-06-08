@@ -1,13 +1,13 @@
-using SwizzeySwitch.Helpers;
-using SwizzeySwitch.Models;
-using SwizzeySwitch.Services;
+using SqwizzeySwitch.Helpers;
+using SqwizzeySwitch.Models;
+using SqwizzeySwitch.Services;
 using Microsoft.Win32;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
 
-namespace SwizzeySwitch;
+namespace SqwizzeySwitch;
 
 public partial class OverlayWindow : Window
 {

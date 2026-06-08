@@ -1,7 +1,7 @@
-using SwizzeySwitch.Helpers;
+using SqwizzeySwitch.Helpers;
 using System.Runtime.InteropServices;
 
-namespace SwizzeySwitch.Services;
+namespace SqwizzeySwitch.Services;
 
 /// <summary>
 /// Determines whether the current foreground window covers the entire monitor,

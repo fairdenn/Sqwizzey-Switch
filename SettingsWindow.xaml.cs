@@ -1,9 +1,9 @@
-using SwizzeySwitch.Models;
-using SwizzeySwitch.Services;
+using SqwizzeySwitch.Models;
+using SqwizzeySwitch.Services;
 using System.Windows;
 using System.Windows.Controls;
 
-namespace SwizzeySwitch;
+namespace SqwizzeySwitch;
 
 public partial class SettingsWindow : Window
 {

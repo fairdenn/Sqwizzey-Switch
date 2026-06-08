@@ -1,5 +1,5 @@
 ; ============================================================
-;  Swizzey Switch — Inno Setup script
+;  Sqwizzey Switch — Inno Setup script
 ;
 ;  Build steps:
 ;    1. dotnet publish -c Release -r win-x64 --self-contained true
@@ -10,10 +10,10 @@
 ;  Inno Setup download: https://jrsoftware.org/isdl.php
 ; ============================================================
 
-#define AppName     "SwizzeySwitch"
+#define AppName     "SqwizzeySwitch"
 #define AppVersion  "1.0.0"
-#define AppPublisher "Swizzey Switch"
-#define AppExe      "SwizzeySwitch.exe"
+#define AppPublisher "Sqwizzey Switch"
+#define AppExe      "SqwizzeySwitch.exe"
 
 [Setup]
 AppId={{F3A1C2D4-8B5E-4F9A-A3D7-1C2E4B6F8A0D}
@@ -25,7 +25,7 @@ DefaultDirName={autopf}\{#AppName}
 DefaultGroupName={#AppName}
 DisableProgramGroupPage=yes
 OutputDir=installer
-OutputBaseFilename=SwizzeySwitch-Setup-{#AppVersion}
+OutputBaseFilename=SqwizzeySwitch-Setup-{#AppVersion}
 Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern
@@ -56,7 +56,7 @@ Filename: "{app}\{#AppExe}"; Description: "Launch {#AppName} now"; \
 [UninstallRun]
 ; Kill running instance before uninstall
 Filename: "taskkill.exe"; Parameters: "/F /IM {#AppExe}"; Flags: runhidden; \
-  RunOnceId: "KillSwizzeySwitch"
+  RunOnceId: "KillSqwizzeySwitch"
 
 [Registry]
 ; Remove autorun entry on uninstall (user may have set it via the tray menu)
