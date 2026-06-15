@@ -34,7 +34,7 @@
 
 ## Download
 
-Grab the installer from the [latest release](../../releases/latest) — `SqwizzeySwitch-Setup-1.0.0.exe`. No administrator rights required; the app is self-contained (no .NET install needed).
+Grab the installer from the [latest release](../../releases/latest) — `SqwizzeySwitch-Setup-1.0.1.exe`. No administrator rights required; the app is self-contained (no .NET install needed).
 
 ## Build from source
 

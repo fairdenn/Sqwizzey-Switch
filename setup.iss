@@ -11,7 +11,7 @@
 ; ============================================================
 
 #define AppName     "SqwizzeySwitch"
-#define AppVersion  "1.0.0"
+#define AppVersion  "1.0.1"
 #define AppPublisher "Sqwizzey Switch"
 #define AppExe      "SqwizzeySwitch.exe"
 
