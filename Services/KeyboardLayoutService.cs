@@ -1,17 +1,20 @@
 using SqwizzeySwitch.Helpers;
-using System.Globalization;
 
 namespace SqwizzeySwitch.Services;
 
 /// <summary>
-/// Polls the active window's keyboard layout every 150 ms and fires
-/// LayoutChanged whenever the two-letter language code changes.
-/// The first detection is silently consumed so no overlay shows at launch.
+/// Polls every 150 ms and fires LayoutChanged ONLY when the keyboard layout
+/// changes while staying in the same app window (i.e. a real Win+Space). A switch
+/// to a different window is owned by ForegroundChangeService, so when the effective
+/// app window changes we silently re-baseline and stay quiet — otherwise both
+/// services would fire for one window switch and the overlay would show twice.
 /// </summary>
 public sealed class KeyboardLayoutService : IDisposable
 {
-    public event Action<string>? LayoutChanged;
+    public event Action<string>? LayoutChanged;          // layout changed in same window
+    public event Action<IntPtr>? WindowChanged;          // effective app window changed
 
+    private IntPtr  _lastHwnd        = IntPtr.Zero;   // effective app window we track
     private string  _currentLanguage = string.Empty;
     private bool    _firstPoll       = true;
     private bool    _disposed        = false;
@@ -33,48 +36,45 @@ public sealed class KeyboardLayoutService : IDisposable
 
         try
         {
-            var lang = GetForegroundWindowLanguage();
-            if (lang == _currentLanguage) return;
+            // Effective window: the foreground app window, or — if focus is on the
+            // shell / a popup / menu — keep tracking the last real app window so a
+            // layout change made with a menu open still counts against the app.
+            var fg  = NativeMethods.GetForegroundWindow();
+            var eff = (!ShellWindowClassifier.IsShell(fg) && ShellWindowClassifier.IsAppWindow(fg))
+                ? fg : _lastHwnd;
 
-            _currentLanguage = lang;
+            var lang = LayoutUtils.LanguageOf(eff);
+            if (string.IsNullOrEmpty(lang)) return; // transient null during a switch
 
             if (_firstPoll)
             {
-                _firstPoll = false;
-                return; // remember initial language without showing overlay
+                _firstPoll       = false;
+                _lastHwnd        = eff;
+                _currentLanguage = lang;
+                return; // remember initial state without showing
             }
 
-            if (!string.IsNullOrEmpty(lang))
-                LayoutChanged?.Invoke(lang);
+            if (eff != _lastHwnd)
+            {
+                // Window changed. The WinEvent hook usually fires first, but it can
+                // miss switches (e.g. Explorer churns through a ForegroundStaging
+                // window). Raise WindowChanged as a safety net — the app dedups by
+                // window handle so the hook and the poll never double-show.
+                _lastHwnd        = eff;
+                _currentLanguage = lang;
+                WindowChanged?.Invoke(eff);
+                return;
+            }
+
+            if (lang != _currentLanguage)
+            {
+                _currentLanguage = lang;
+                LayoutChanged?.Invoke(lang); // real in-window layout change
+            }
         }
         catch (Exception ex)
         {
             Logger.Log(ex, nameof(Poll));
-        }
-    }
-
-    private static string GetForegroundWindowLanguage()
-    {
-        var hwnd = NativeMethods.GetForegroundWindow();
-        if (hwnd == IntPtr.Zero) return string.Empty;
-
-        var threadId = NativeMethods.GetWindowThreadProcessId(hwnd, out _);
-        var hkl      = NativeMethods.GetKeyboardLayout(threadId);
-        if (hkl == IntPtr.Zero) return string.Empty;
-
-        // The low 16 bits of HKL are the LANGID (language identifier)
-        int langId = (int)(hkl.ToInt64() & 0xFFFF);
-        if (langId == 0) return string.Empty;
-
-        try
-        {
-            var culture = CultureInfo.GetCultureInfo(langId);
-            return culture.TwoLetterISOLanguageName.ToUpperInvariant();
-        }
-        catch
-        {
-            // Unknown locale: return hex LCID as fallback label
-            return langId.ToString("X4");
         }
     }
 

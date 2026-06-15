@@ -1,126 +1,183 @@
-<Window x:Class="SqwizzeySwitch.SettingsWindow"
+<ui:FluentWindow x:Class="SqwizzeySwitch.SettingsWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
         Title="Sqwizzey Switch — Settings"
-        Width="370" Height="400"
+        Width="400"
+        SizeToContent="Height"
         ResizeMode="NoResize"
         WindowStartupLocation="CenterScreen"
+        WindowBackdropType="Mica"
+        ExtendsContentIntoTitleBar="True"
         ShowInTaskbar="True"
-        ShowActivated="True"
-        FontFamily="Segoe UI"
-        FontSize="12">
+        FontFamily="Segoe UI">
 
-    <Grid Margin="14,12,14,12">
+    <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <!-- ── Overlay ── -->
-        <GroupBox Grid.Row="0" Header="Overlay" Margin="0,0,0,8" Padding="8,6,8,8">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="70"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="52"/>
-                </Grid.ColumnDefinitions>
+        <ui:TitleBar Grid.Row="0" Title="Sqwizzey Switch — Settings"
+                     ShowMaximize="False" ShowMinimize="False"/>
 
-                <TextBlock Grid.Row="0" Grid.Column="0" Text="Duration:" VerticalAlignment="Center" Foreground="#555"/>
-                <Slider    Grid.Row="0" Grid.Column="1" x:Name="SliderDuration"
-                           Minimum="300" Maximum="2000" TickFrequency="100" IsSnapToTickEnabled="True"
-                           VerticalAlignment="Center" Margin="4,0"
-                           ValueChanged="SliderDuration_ValueChanged"/>
-                <TextBlock Grid.Row="0" Grid.Column="2" x:Name="LblDuration" Text="800 ms"
-                           VerticalAlignment="Center" HorizontalAlignment="Right" Foreground="#555" FontSize="11"/>
+        <StackPanel Grid.Row="1" Margin="16,4,16,16">
 
-                <TextBlock Grid.Row="1" Grid.Column="0" Text="Opacity:" VerticalAlignment="Center"
-                           Foreground="#555" Margin="0,6,0,0"/>
-                <Slider    Grid.Row="1" Grid.Column="1" x:Name="SliderOpacity"
-                           Minimum="0.40" Maximum="1.00" TickFrequency="0.05" IsSnapToTickEnabled="True"
-                           VerticalAlignment="Center" Margin="4,6,4,0"
-                           ValueChanged="SliderOpacity_ValueChanged"/>
-                <TextBlock Grid.Row="1" Grid.Column="2" x:Name="LblOpacity" Text="88%"
-                           VerticalAlignment="Center" HorizontalAlignment="Right"
-                           Foreground="#555" FontSize="11" Margin="0,6,0,0"/>
-            </Grid>
-        </GroupBox>
+            <!-- ── Live preview ── -->
+            <Border x:Name="PreviewContainer"
+                    Height="128" CornerRadius="8" Margin="0,0,0,14">
+                <Border.Background>
+                    <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                        <GradientStop Color="#2B2B30" Offset="0"/>
+                        <GradientStop Color="#3A3A42" Offset="1"/>
+                    </LinearGradientBrush>
+                </Border.Background>
+                <Grid HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <Border x:Name="PreviewGlow"
+                            HorizontalAlignment="Center" VerticalAlignment="Center"
+                            IsHitTestVisible="False"/>
+                    <Border x:Name="PreviewCard"
+                            Width="110" Height="80"
+                            HorizontalAlignment="Center" VerticalAlignment="Center"
+                            CornerRadius="18" Background="#CC1E1E1E">
+                        <TextBlock x:Name="PreviewText" Text="EN"
+                                   FontFamily="Segoe UI" FontSize="34" FontWeight="SemiBold"
+                                   Foreground="White"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                </Grid>
+            </Border>
 
-        <!-- ── Appearance ── -->
-        <GroupBox Grid.Row="1" Header="Appearance" Margin="0,0,0,8" Padding="8,6,8,8">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="70"/>
-                    <ColumnDefinition Width="*"/>
-                    <ColumnDefinition Width="52"/>
-                </Grid.ColumnDefinitions>
+            <!-- ── Overlay ── -->
+            <ui:Card Margin="0,0,0,10" Padding="14,10">
+                <StackPanel>
+                    <ui:TextBlock Text="Overlay" FontTypography="BodyStrong" Margin="0,0,0,8"/>
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="68"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="56"/>
+                        </Grid.ColumnDefinitions>
 
-                <TextBlock Grid.Row="0" Grid.Column="0" Text="Position:" VerticalAlignment="Center" Foreground="#555"/>
-                <ComboBox  Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" x:Name="CbPosition"
-                           Margin="4,0,0,0" Height="24">
-                    <ComboBoxItem Content="Center"        Tag="Center"/>
-                    <ComboBoxItem Content="Top Center"    Tag="TopCenter"/>
-                    <ComboBoxItem Content="Bottom Center" Tag="BottomCenter"/>
-                    <ComboBoxItem Content="Top Left"      Tag="TopLeft"/>
-                    <ComboBoxItem Content="Top Right"     Tag="TopRight"/>
-                    <ComboBoxItem Content="Bottom Left"   Tag="BottomLeft"/>
-                    <ComboBoxItem Content="Bottom Right"  Tag="BottomRight"/>
-                </ComboBox>
+                        <ui:TextBlock Grid.Row="0" Grid.Column="0" Text="Duration" VerticalAlignment="Center"/>
+                        <Slider Grid.Row="0" Grid.Column="1" x:Name="SliderDuration"
+                                Minimum="300" Maximum="2000" TickFrequency="100" IsSnapToTickEnabled="True"
+                                VerticalAlignment="Center" Margin="6,0"
+                                ValueChanged="SliderDuration_ValueChanged"/>
+                        <ui:TextBlock Grid.Row="0" Grid.Column="2" x:Name="LblDuration" Text="800 ms"
+                                      VerticalAlignment="Center" HorizontalAlignment="Right"/>
 
-                <TextBlock Grid.Row="1" Grid.Column="0" Text="Offset Y:" VerticalAlignment="Center"
-                           Foreground="#555" Margin="0,6,0,0"/>
-                <Slider    Grid.Row="1" Grid.Column="1" x:Name="SliderOffsetY"
-                           Minimum="-200" Maximum="200" TickFrequency="10" IsSnapToTickEnabled="True"
-                           VerticalAlignment="Center" Margin="4,6,4,0"
-                           ValueChanged="SliderOffsetY_ValueChanged"/>
-                <TextBlock Grid.Row="1" Grid.Column="2" x:Name="LblOffsetY" Text="0 px"
-                           VerticalAlignment="Center" HorizontalAlignment="Right"
-                           Foreground="#555" FontSize="11" Margin="0,6,0,0"/>
+                        <ui:TextBlock Grid.Row="1" Grid.Column="0" Text="Opacity" VerticalAlignment="Center" Margin="0,8,0,0"/>
+                        <Slider Grid.Row="1" Grid.Column="1" x:Name="SliderOpacity"
+                                Minimum="0.40" Maximum="1.00" TickFrequency="0.05" IsSnapToTickEnabled="True"
+                                VerticalAlignment="Center" Margin="6,8,6,0"
+                                ValueChanged="SliderOpacity_ValueChanged"/>
+                        <ui:TextBlock Grid.Row="1" Grid.Column="2" x:Name="LblOpacity" Text="88%"
+                                      VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,8,0,0"/>
+                    </Grid>
+                </StackPanel>
+            </ui:Card>
 
-                <TextBlock Grid.Row="2" Grid.Column="0" Text="Theme:" VerticalAlignment="Center"
-                           Foreground="#555" Margin="0,6,0,0"/>
-                <ComboBox  Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="2" x:Name="CbTheme"
-                           Margin="4,6,0,0" Height="24">
-                    <ComboBoxItem Content="Dark"          Tag="Dark"/>
-                    <ComboBoxItem Content="Light"         Tag="Light"/>
-                    <ComboBoxItem Content="Auto (system)" Tag="Auto"/>
-                </ComboBox>
-            </Grid>
-        </GroupBox>
+            <!-- ── Appearance ── -->
+            <ui:Card Margin="0,0,0,10" Padding="14,10">
+                <StackPanel>
+                    <ui:TextBlock Text="Appearance" FontTypography="BodyStrong" Margin="0,0,0,8"/>
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="68"/>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="56"/>
+                        </Grid.ColumnDefinitions>
 
-        <!-- ── Behavior ── -->
-        <GroupBox Grid.Row="2" Header="Behavior" Margin="0,0,0,12" Padding="8,6,8,8">
-            <StackPanel>
-                <CheckBox x:Name="ChkSkipFullscreen" Content="Skip fullscreen apps (games)"
-                          Foreground="#333" Margin="0,0,0,5"/>
-                <CheckBox x:Name="ChkStartup"        Content="Start with Windows"
-                          Foreground="#333"/>
+                        <ui:TextBlock Grid.Row="0" Grid.Column="0" Text="Style" VerticalAlignment="Center"/>
+                        <ComboBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" x:Name="CbStyle"
+                                  Margin="6,0,0,0" SelectionChanged="Preview_Changed">
+                            <ComboBoxItem Content="macOS"    Tag="macOS"/>
+                            <ComboBoxItem Content="Frosted"  Tag="Glass"/>
+                            <ComboBoxItem Content="Accent"   Tag="Accent"/>
+
+                            <ComboBoxItem Content="Minimal"       Tag="Minimal"/>
+                            <ComboBoxItem Content="Neon"          Tag="Neon"/>
+                        </ComboBox>
+
+                        <ui:TextBlock Grid.Row="1" Grid.Column="0" Text="Position" VerticalAlignment="Center" Margin="0,8,0,0"/>
+                        <ComboBox Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="2" x:Name="CbPosition"
+                                  Margin="6,8,0,0">
+                            <ComboBoxItem Content="Center"        Tag="Center"/>
+                            <ComboBoxItem Content="Top Center"    Tag="TopCenter"/>
+                            <ComboBoxItem Content="Bottom Center" Tag="BottomCenter"/>
+                            <ComboBoxItem Content="Top Left"      Tag="TopLeft"/>
+                            <ComboBoxItem Content="Top Right"     Tag="TopRight"/>
+                            <ComboBoxItem Content="Bottom Left"   Tag="BottomLeft"/>
+                            <ComboBoxItem Content="Bottom Right"  Tag="BottomRight"/>
+                        </ComboBox>
+
+                        <ui:TextBlock Grid.Row="2" Grid.Column="0" Text="Offset Y" VerticalAlignment="Center" Margin="0,8,0,0"/>
+                        <Slider Grid.Row="2" Grid.Column="1" x:Name="SliderOffsetY"
+                                Minimum="-200" Maximum="200" TickFrequency="10" IsSnapToTickEnabled="True"
+                                VerticalAlignment="Center" Margin="6,8,6,0"
+                                ValueChanged="SliderOffsetY_ValueChanged"/>
+                        <ui:TextBlock Grid.Row="2" Grid.Column="2" x:Name="LblOffsetY" Text="0 px"
+                                      VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,8,0,0"/>
+
+                        <ui:TextBlock Grid.Row="3" Grid.Column="0" Text="Theme" VerticalAlignment="Center" Margin="0,8,0,0"/>
+                        <ComboBox Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="2" x:Name="CbTheme"
+                                  Margin="6,8,0,0" SelectionChanged="Preview_Changed">
+                            <ComboBoxItem Content="Dark"          Tag="Dark"/>
+                            <ComboBoxItem Content="Light"         Tag="Light"/>
+                            <ComboBoxItem Content="Auto (system)" Tag="Auto"/>
+                        </ComboBox>
+
+                        <ui:TextBlock Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3"
+                                      Text="Theme applies to macOS, Frosted and Minimal. Accent and Neon have a fixed look."
+                                      TextWrapping="Wrap" Appearance="Secondary" FontSize="11" Margin="0,8,0,0"/>
+                    </Grid>
+                </StackPanel>
+            </ui:Card>
+
+            <!-- ── Behavior ── -->
+            <ui:Card Margin="0,0,0,10" Padding="14,10">
+                <StackPanel>
+                    <ui:TextBlock Text="Behavior" FontTypography="BodyStrong" Margin="0,0,0,8"/>
+                    <ui:ToggleSwitch x:Name="ChkAnimations"     Content="Animations (scramble + spring)" Margin="0,0,0,6"/>
+                    <ui:ToggleSwitch x:Name="ChkFollowFocus"    Content="Show language on app switch"    Margin="0,0,0,6"/>
+                    <ui:ToggleSwitch x:Name="ChkSkipFullscreen" Content="Skip fullscreen apps (games)"   Margin="0,0,0,6"/>
+                    <ui:ToggleSwitch x:Name="ChkStartup"        Content="Start with Windows"/>
+                </StackPanel>
+            </ui:Card>
+
+            <!-- ── System ── -->
+            <ui:Card Margin="0,0,0,14" Padding="14,10">
+                <StackPanel>
+                    <ui:TextBlock Text="System" FontTypography="BodyStrong" Margin="0,0,0,8"/>
+                    <ui:ToggleSwitch x:Name="ChkHidePopup" Content="Hide Windows' own language popup"
+                                     Click="ChkHidePopup_Click"/>
+                    <ui:TextBlock Text="Removes Windows' built-in centered language switcher (a duplicate of this overlay). Applies system-wide — asks for administrator once."
+                                  TextWrapping="Wrap" Appearance="Secondary" FontSize="11" Margin="0,6,0,0"/>
+                </StackPanel>
+            </ui:Card>
+
+            <!-- ── Buttons ── -->
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <ui:Button x:Name="BtnCancel" Content="Cancel"
+                           MinWidth="84" Margin="0,0,8,0" IsCancel="True"
+                           Click="BtnCancel_Click"/>
+                <ui:Button x:Name="BtnSave" Content="Save" Appearance="Primary"
+                           MinWidth="84" IsDefault="True"
+                           Click="BtnSave_Click"/>
             </StackPanel>
-        </GroupBox>
 
-        <!-- ── Buttons ── -->
-        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right">
-            <Button x:Name="BtnPreview" Content="Preview"
-                    Width="72" Height="26" Margin="0,0,6,0"
-                    Click="BtnPreview_Click"/>
-            <Button x:Name="BtnCancel" Content="Cancel"
-                    Width="72" Height="26" Margin="0,0,6,0" IsCancel="True"
-                    Click="BtnCancel_Click"/>
-            <Button x:Name="BtnSave"   Content="Save"
-                    Width="72" Height="26" IsDefault="True"
-                    Click="BtnSave_Click"/>
         </StackPanel>
-
     </Grid>
-</Window>
+</ui:FluentWindow>

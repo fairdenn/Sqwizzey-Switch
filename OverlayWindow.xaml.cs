@@ -1,7 +1,6 @@
 using SqwizzeySwitch.Helpers;
 using SqwizzeySwitch.Models;
 using SqwizzeySwitch.Services;
-using Microsoft.Win32;
 using System.Windows;
 using System.Windows.Interop;
 using System.Windows.Media;
@@ -9,15 +8,22 @@ using System.Windows.Media.Animation;
 
 namespace SqwizzeySwitch;
 
-public partial class OverlayWindow : Window
+public partial class OverlayWindow : Window, IOverlay
 {
     private int    _showDurationMs;
     private double _maxOpacity;
     private string _positionMode;
     private int    _offsetY;
+    private bool   _animationsEnabled = true;
 
     private System.Threading.Timer? _hideTimer;
     private bool _isVisible;
+    private int  _showGeneration; // bumped per show; a stale hide timer no-ops
+
+    // scrambleText effect (anime.js 4.4 style)
+    private System.Windows.Threading.DispatcherTimer? _scrambleTimer;
+    private static readonly Random _rng = new();
+    private const string ScrambleChars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
     public OverlayWindow(int showDurationMs = 800, double maxOpacity = 0.88,
                          string positionMode = "Center", int offsetY = 0)
@@ -46,6 +52,11 @@ public partial class OverlayWindow : Window
                  | NativeMethods.WS_EX_LAYERED;     // required for transparency
 
         NativeMethods.SetWindowLong(hwnd, NativeMethods.GWL_EXSTYLE, exStyle);
+
+        // Commit the extended-style change and assert topmost z-order.
+        NativeMethods.SetWindowPos(hwnd, NativeMethods.HWND_TOPMOST, 0, 0, 0, 0,
+            NativeMethods.SWP_NOMOVE | NativeMethods.SWP_NOSIZE
+            | NativeMethods.SWP_NOACTIVATE | NativeMethods.SWP_FRAMECHANGED);
     }
 
     // -------------------------------------------------------------------------
@@ -56,41 +67,28 @@ public partial class OverlayWindow : Window
     {
         Dispatcher.Invoke(() =>
         {
-            _showDurationMs = s.ShowDurationMs;
-            _maxOpacity     = s.MaxOpacity;
-            _positionMode   = s.PositionMode;
-            _offsetY        = s.OffsetY;
-            ApplyTheme(s.Theme);
+            _showDurationMs    = s.ShowDurationMs;
+            _maxOpacity        = s.MaxOpacity;
+            _positionMode      = s.PositionMode;
+            _offsetY           = s.OffsetY;
+            _animationsEnabled = s.AnimationsEnabled;
+            ApplyStyle(s.Style, s.Theme);
         });
     }
 
-    private void ApplyTheme(string theme)
+    // -------------------------------------------------------------------------
+    // Style presets — each defines the card geometry, fill, border, glow & text
+    // -------------------------------------------------------------------------
+
+    private void ApplyStyle(string style, string theme)
     {
-        bool isDark = theme switch
-        {
-            "Dark"  => true,
-            "Light" => false,
-            _       => IsSystemDarkTheme()  // "Auto"
-        };
-
-        Card.Background = new SolidColorBrush(isDark
-            ? Color.FromArgb(0xCC, 0x1E, 0x1E, 0x1E)
-            : Color.FromArgb(0xCC, 0xFA, 0xFA, 0xFA));
-
-        LangText.Foreground = isDark
-            ? Brushes.White
-            : new SolidColorBrush(Color.FromRgb(0x1A, 0x1A, 0x1A));
-    }
-
-    private static bool IsSystemDarkTheme()
-    {
-        try
-        {
-            using var key = Registry.CurrentUser.OpenSubKey(
-                @"SOFTWARE\Microsoft\Windows\CurrentVersion\Themes\Personalize", writable: false);
-            return key?.GetValue("AppsUseLightTheme") is int v && v == 0;
-        }
-        catch { return true; }
+        // Card/text visuals are computed by the shared helper so the Settings live
+        // preview renders identically. The overlay window only owns its own sizing:
+        // a transparent margin around the card so the glow isn't clipped at the edge.
+        var (w, h) = OverlayStyle.Apply(style, theme, Card, LangText, Glow);
+        const double pad = 44;
+        Width  = w + pad * 2;
+        Height = h + pad * 2;
     }
 
     // -------------------------------------------------------------------------
@@ -101,26 +99,121 @@ public partial class OverlayWindow : Window
     {
         Dispatcher.Invoke(() =>
         {
-            LangText.Text = lang;
+            // Clear any leftover slide from a follow-focus move so this centred
+            // show isn't stuck at the previous window's position.
+            BeginAnimation(LeftProperty, null);
+            BeginAnimation(TopProperty, null);
+
+            ScrambleTo(lang);
             PositionOnActiveMonitor();
+            PresentAndScheduleHide();
+        });
+    }
 
-            _hideTimer?.Dispose();
-            _hideTimer = new System.Threading.Timer(
-                _ => Dispatcher.Invoke(StartFadeOut),
-                null, _showDurationMs, Timeout.Infinite);
+    // Makes the card visible and (re)arms the hide timer. Safe to call while a
+    // previous show is still on screen: a generation token stops a stale hide from
+    // killing the fresh card, and opacity is forced back up so an in-place re-show
+    // (e.g. a layout change while the card is mid-fade) never stays invisible.
+    private void PresentAndScheduleHide()
+    {
+        // Re-assert real topmost z-order on every show — the WS_EX_TOPMOST style bit
+        // alone doesn't guarantee the window sits above the foreground app.
+        var h = new WindowInteropHelper(this).Handle;
+        NativeMethods.SetWindowPos(h, NativeMethods.HWND_TOPMOST, 0, 0, 0, 0,
+            NativeMethods.SWP_NOMOVE | NativeMethods.SWP_NOSIZE | NativeMethods.SWP_NOACTIVATE);
 
-            if (!_isVisible)
+        int gen = ++_showGeneration;
+        _hideTimer?.Dispose();
+        _hideTimer = new System.Threading.Timer(
+            _ => Dispatcher.Invoke(() => { if (gen == _showGeneration) StartFadeOut(); }),
+            null, _showDurationMs, Timeout.Infinite);
+
+        if (!_isVisible)
+        {
+            _isVisible = true;
+            StartFadeIn();
+        }
+        else
+        {
+            // Already visible: cancel any in-flight fade-out and guarantee full
+            // opacity (no re-spring, so rapid updates don't bounce).
+            BeginAnimation(OpacityProperty, null);
+            Opacity = _maxOpacity;
+        }
+    }
+
+    // Show on app-switch: appear in the default position, then slide the whole
+    // window to the centre of the newly-focused window and hold for ShowDurationMs.
+    // Show on app-switch: the card flies from the centre of the previously-focused
+    // window (fromRect) to the centre of the newly-focused one (toRect), then holds.
+    // When there's no usable previous window, it starts from the monitor centre.
+    internal void ShowLanguageAtWindow(string lang, NativeMethods.RECT? fromRect, NativeMethods.RECT toRect)
+    {
+        Dispatcher.Invoke(() =>
+        {
+            ScrambleTo(lang);
+
+            // Cancel any in-flight slide so we can reset to the start position.
+            BeginAnimation(LeftProperty, null);
+            BeginAnimation(TopProperty, null);
+
+            // Target = new window centre. Degenerate rect → just show at default.
+            bool haveTarget = TryWindowCenterTarget(toRect, out double tx, out double ty);
+
+            if (haveTarget)
             {
-                _isVisible = true;
-                StartFadeIn();
+                // Start = previous window centre, else the monitor centre.
+                if (fromRect is { } fr && TryWindowCenterTarget(fr, out double sx, out double sy))
+                {
+                    Left = _animationsEnabled ? sx : tx;
+                    Top  = _animationsEnabled ? sy : ty;
+                }
+                else
+                {
+                    PositionOnActiveMonitor(); // start from monitor centre / PositionMode
+                    if (!_animationsEnabled) { Left = tx; Top = ty; }
+                }
             }
-            // If already visible: just text + timer updated, no new animation → no flicker
+            else
+            {
+                PositionOnActiveMonitor();
+            }
+
+            PresentAndScheduleHide();
+
+            if (!haveTarget || !_animationsEnabled) return;
+
+            // Fly both axes from the start point to the new window centre.
+            // EaseOut → quick start, soft landing.
+            var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
+            var dur  = new Duration(TimeSpan.FromMilliseconds(350));
+            BeginAnimation(LeftProperty, new DoubleAnimation(Left, tx, dur) { EasingFunction = ease });
+            BeginAnimation(TopProperty,  new DoubleAnimation(Top,  ty, dur) { EasingFunction = ease });
         });
     }
 
     // -------------------------------------------------------------------------
     // Positioning
     // -------------------------------------------------------------------------
+
+    // Converts a focused-window rect (physical px) to the Left/Top (DIP) that
+    // centres this overlay window on it. Returns false for a degenerate rect.
+    private bool TryWindowCenterTarget(NativeMethods.RECT rect, out double left, out double top)
+    {
+        left = top = 0;
+        if (rect.Right - rect.Left < 8 || rect.Bottom - rect.Top < 8) return false;
+
+        var src    = PresentationSource.FromVisual(this);
+        double m11 = src?.CompositionTarget?.TransformFromDevice.M11 ?? 1.0;
+        double m22 = src?.CompositionTarget?.TransformFromDevice.M22 ?? 1.0;
+
+        double cxDip = (rect.Left + rect.Right)  / 2.0 * m11;
+        double cyDip = (rect.Top  + rect.Bottom) / 2.0 * m22;
+
+        left = cxDip - Width  / 2;
+        top  = cyDip - Height / 2;
+        return true;
+    }
 
     private void PositionOnActiveMonitor()
     {
@@ -167,24 +260,101 @@ public partial class OverlayWindow : Window
     // Animations
     // -------------------------------------------------------------------------
 
+    // scrambleText: shuffle through random letters, then lock in the target
+    // characters left-to-right — the anime.js 4.4 scrambleText() effect.
+    private void ScrambleTo(string target)
+    {
+        _scrambleTimer?.Stop();
+
+        if (!_animationsEnabled || string.IsNullOrEmpty(target)) { LangText.Text = target; return; }
+
+        int len    = target.Length;
+        var total  = TimeSpan.FromMilliseconds(360);
+        var sw     = System.Diagnostics.Stopwatch.StartNew();
+
+        _scrambleTimer = new System.Windows.Threading.DispatcherTimer(
+            System.Windows.Threading.DispatcherPriority.Render)
+        {
+            Interval = TimeSpan.FromMilliseconds(28)
+        };
+        _scrambleTimer.Tick += (_, _) =>
+        {
+            double p = Math.Min(1.0, sw.Elapsed.TotalMilliseconds / total.TotalMilliseconds);
+            int locked = (int)Math.Floor(p * len);
+            var chars = new char[len];
+            for (int k = 0; k < len; k++)
+                chars[k] = k < locked
+                    ? target[k]
+                    : ScrambleChars[_rng.Next(ScrambleChars.Length)];
+            LangText.Text = new string(chars);
+
+            if (p >= 1.0)
+            {
+                LangText.Text = target;
+                _scrambleTimer!.Stop();
+            }
+        };
+        LangText.Text = target; // avoid an empty first frame
+        _scrambleTimer.Start();
+    }
+
+    // anime.js-style spring entrance: the card scales up from small with a slight
+    // overshoot (BackEase), rises a few px into place, and fades in together.
     private void StartFadeIn()
     {
-        var anim = new DoubleAnimation(Opacity, _maxOpacity,
-            new Duration(TimeSpan.FromMilliseconds(130)))
+        if (!_animationsEnabled)
+        {
+            // Snap to visible: clear any running animations and set final values.
+            BeginAnimation(OpacityProperty, null);
+            CardScale.BeginAnimation(ScaleTransform.ScaleXProperty, null);
+            CardScale.BeginAnimation(ScaleTransform.ScaleYProperty, null);
+            CardTranslate.BeginAnimation(TranslateTransform.YProperty, null);
+            CardScale.ScaleX = CardScale.ScaleY = 1.0;
+            CardTranslate.Y  = 0;
+            Opacity = _maxOpacity;
+            return;
+        }
+
+        var fade = new DoubleAnimation(0, _maxOpacity,
+            new Duration(TimeSpan.FromMilliseconds(220)))
         {
             EasingFunction = new CubicEase { EasingMode = EasingMode.EaseOut }
         };
-        BeginAnimation(OpacityProperty, anim);
+        BeginAnimation(OpacityProperty, fade);
+
+        var spring = new BackEase { EasingMode = EasingMode.EaseOut, Amplitude = 0.7 };
+        var dur    = new Duration(TimeSpan.FromMilliseconds(420));
+
+        var scale = new DoubleAnimation(0.55, 1.0, dur) { EasingFunction = spring };
+        CardScale.BeginAnimation(ScaleTransform.ScaleXProperty, scale);
+        CardScale.BeginAnimation(ScaleTransform.ScaleYProperty, scale);
+
+        var rise = new DoubleAnimation(16, 0, dur) { EasingFunction = spring };
+        CardTranslate.BeginAnimation(TranslateTransform.YProperty, rise);
     }
 
     private void StartFadeOut()
     {
         _isVisible = false;
-        var anim = new DoubleAnimation(Opacity, 0,
-            new Duration(TimeSpan.FromMilliseconds(200)))
+
+        if (!_animationsEnabled)
+        {
+            BeginAnimation(OpacityProperty, null);
+            Opacity = 0;
+            return;
+        }
+
+        var fade = new DoubleAnimation(Opacity, 0,
+            new Duration(TimeSpan.FromMilliseconds(180)))
         {
             EasingFunction = new CubicEase { EasingMode = EasingMode.EaseIn }
         };
-        BeginAnimation(OpacityProperty, anim);
+        BeginAnimation(OpacityProperty, fade);
+
+        var dur   = new Duration(TimeSpan.FromMilliseconds(180));
+        var ease  = new CubicEase { EasingMode = EasingMode.EaseIn };
+        var scale = new DoubleAnimation(1.0, 0.85, dur) { EasingFunction = ease };
+        CardScale.BeginAnimation(ScaleTransform.ScaleXProperty, scale);
+        CardScale.BeginAnimation(ScaleTransform.ScaleYProperty, scale);
     }
 }

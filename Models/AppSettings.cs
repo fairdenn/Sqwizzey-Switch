@@ -8,17 +8,23 @@ public class AppSettings
     public bool   OverlayEnabled  { get; set; } = true;
     public int    ShowDurationMs  { get; set; } = 800;
     public double MaxOpacity      { get; set; } = 0.88;
+    // scrambleText + spring entrance; off → instant text & snap show/hide
+    public bool   AnimationsEnabled { get; set; } = true;
 
     // --- Appearance ---
+    // "macOS" | "Glass" | "Accent" | "Minimal" | "Neon"
+    public string Style           { get; set; } = "macOS";
     // "Center" | "TopCenter" | "BottomCenter" | "TopLeft" | "TopRight" | "BottomLeft" | "BottomRight"
     public string PositionMode    { get; set; } = "Center";
     public int    OffsetY         { get; set; } = 0;
-    // "Dark" | "Light" | "Auto"
+    // "Dark" | "Light" | "Auto" — light/dark modifier (ignored by Accent & Neon)
     public string Theme           { get; set; } = "Dark";
 
     // --- Behavior ---
     public bool   SkipFullscreen  { get; set; } = true;
     public bool   StartWithWindows{ get; set; } = false;
+    // Show the indicator on app switch and slide it to the focused window's centre
+    public bool   FollowFocusEnabled { get; set; } = false;
 
     // -------------------------------------------------------------------------
 
@@ -55,13 +61,16 @@ public class AppSettings
 
     public AppSettings Clone() => new()
     {
-        OverlayEnabled   = OverlayEnabled,
-        ShowDurationMs   = ShowDurationMs,
-        MaxOpacity       = MaxOpacity,
+        OverlayEnabled    = OverlayEnabled,
+        ShowDurationMs    = ShowDurationMs,
+        MaxOpacity        = MaxOpacity,
+        AnimationsEnabled = AnimationsEnabled,
+        Style            = Style,
         PositionMode     = PositionMode,
         OffsetY          = OffsetY,
         Theme            = Theme,
         SkipFullscreen   = SkipFullscreen,
         StartWithWindows = StartWithWindows,
+        FollowFocusEnabled = FollowFocusEnabled,
     };
 }
