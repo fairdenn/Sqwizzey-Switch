@@ -12,6 +12,25 @@
     <Platforms>x64</Platforms>
     <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
     <ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+    <!-- Bundle native WPF libs into the single exe so the installer can ship one file -->
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+    <DebugType>none</DebugType>
   </PropertyGroup>
+
+  <!--
+    UseWindowsForms swaps the implicit global usings to the WinForms set
+    (System.Drawing + System.Windows.Forms, and notably drops System.IO).
+    Those collide with WPF (Color/Brushes, Application/ComboBox/MessageBox).
+    This is a WPF-first app; WinForms is used explicitly only in TrayService.
+    So: drop the colliding WinForms globals and restore System.IO.
+  -->
+  <ItemGroup>
+    <Using Remove="System.Drawing" />
+    <Using Remove="System.Windows.Forms" />
+    <Using Include="System.IO" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="WPF-UI" Version="4.3.0" />
+  </ItemGroup>
 
 </Project>
