@@ -151,6 +151,11 @@ public partial class App : Application
         if (!_settings.OverlayEnabled || !_settings.FollowFocusEnabled) return;
         if (_settings.SkipFullscreen && FullscreenDetector.IsForegroundFullscreen()) return;
 
+        // Our own windows (the settings window): the WinEvent hook skips our process
+        // via WINEVENT_SKIPOWNPROCESS, but the poll safety net doesn't — filter here.
+        NativeMethods.GetWindowThreadProcessId(hwnd, out uint pid);
+        if (pid == (uint)Environment.ProcessId) return;
+
         // Taskbar, tray, desktop, Start — never show. Menus/popups/tooltips/toasts too.
         if (ShellWindowClassifier.IsShell(hwnd)) return;
         if (!ShellWindowClassifier.IsAppWindow(hwnd)) return;
@@ -236,9 +241,14 @@ public partial class App : Application
                 }
 
                 _settingsWindow = new SettingsWindow(_settings);
-                // Live preview now renders inside the settings window itself — no need
-                // to flash the real overlay on screen.
                 _settingsWindow.SettingsSaved    += OnSettingsSaved;
+                // Flash the real overlay at the chosen position while editing it.
+                _settingsWindow.PreviewRequested += s =>
+                {
+                    _overlay?.ApplySettings(s);
+                    var lang = string.IsNullOrEmpty(_keyboard?.CurrentLanguage) ? "EN" : _keyboard!.CurrentLanguage;
+                    _overlay?.ShowLanguage(lang);
+                };
                 _settingsWindow.Closed           += (_, _) =>
                 {
                     _settingsWindow = null;
@@ -264,6 +274,7 @@ public partial class App : Application
     {
         _overlay?.ApplySettings(updated);
         _tray?.RefreshStartupCheck();
+        _tray?.Relocalize(); // update tray menu language
         Logger.Log($"Settings saved: style={updated.Style} theme={updated.Theme} pos={updated.PositionMode} dur={updated.ShowDurationMs}ms");
     }
 

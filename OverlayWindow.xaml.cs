@@ -13,6 +13,7 @@ public partial class OverlayWindow : Window, IOverlay
     private int    _showDurationMs;
     private double _maxOpacity;
     private string _positionMode;
+    private int    _offsetX;
     private int    _offsetY;
     private bool   _animationsEnabled = true;
 
@@ -70,6 +71,7 @@ public partial class OverlayWindow : Window, IOverlay
             _showDurationMs    = s.ShowDurationMs;
             _maxOpacity        = s.MaxOpacity;
             _positionMode      = s.PositionMode;
+            _offsetX           = s.OffsetX;
             _offsetY           = s.OffsetY;
             _animationsEnabled = s.AnimationsEnabled;
             ApplyStyle(s.Style, s.Theme);
@@ -234,18 +236,19 @@ public partial class OverlayWindow : Window, IOverlay
 
             double cx  = dipL + (dipW - Width)  / 2;
             double cy  = dipT + (dipH - Height) / 2;
+            double dx  = _offsetX;
             double dy  = _offsetY;
             double pad = 80; // edge padding for non-center modes
 
             (Left, Top) = _positionMode switch
             {
-                "TopCenter"    => (cx,                         dipT + pad + dy),
-                "BottomCenter" => (cx,                         dipT + dipH - Height - pad + dy),
-                "TopLeft"      => (dipL + pad,                 dipT + pad + dy),
-                "TopRight"     => (dipL + dipW - Width - pad,  dipT + pad + dy),
-                "BottomLeft"   => (dipL + pad,                 dipT + dipH - Height - pad + dy),
-                "BottomRight"  => (dipL + dipW - Width - pad,  dipT + dipH - Height - pad + dy),
-                _              => (cx,                         cy + dy)  // "Center"
+                "TopCenter"    => (cx + dx,                         dipT + pad + dy),
+                "BottomCenter" => (cx + dx,                         dipT + dipH - Height - pad + dy),
+                "TopLeft"      => (dipL + pad + dx,                 dipT + pad + dy),
+                "TopRight"     => (dipL + dipW - Width - pad + dx,  dipT + pad + dy),
+                "BottomLeft"   => (dipL + pad + dx,                 dipT + dipH - Height - pad + dy),
+                "BottomRight"  => (dipL + dipW - Width - pad + dx,  dipT + dipH - Height - pad + dy),
+                _              => (cx + dx,                         cy + dy)  // "Center"
             };
         }
         catch (Exception ex)

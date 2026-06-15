@@ -27,6 +27,7 @@ internal static class ShellWindowClassifier
         "Shell_InputSwitchTopLevelWindow",     // Win+Space language switcher popup
         "XamlExplorerHostIslandWindow",        // Alt+Tab switcher / Task View / Snap Assist
         "MultitaskingViewFrame",               // Win+Tab task view (older)
+        "OperationStatusWindow",               // file copy/move/delete progress dialog
     };
 
     // Process names (without .exe) that host shell UI like Start, Search, etc.

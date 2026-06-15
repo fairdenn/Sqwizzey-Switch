@@ -14,13 +14,15 @@ public sealed class TrayService : IDisposable
     private          ToolStripMenuItem _toggleItem  = null!;
     private          ToolStripMenuItem _startupItem = null!;
 
+    private string L => Loc.Resolve(_settings.Language);
+
     public TrayService(AppSettings settings)
     {
         _settings   = settings;
         _notifyIcon = new NotifyIcon
         {
             Visible = true,
-            Text    = "Sqwizzey Switch — keyboard layout indicator",
+            Text    = Loc.T("tray.title", L),
             Icon    = BuildTrayIcon()
         };
 
@@ -28,25 +30,32 @@ public sealed class TrayService : IDisposable
         _notifyIcon.DoubleClick     += (_, _) => ToggleOverlay();
     }
 
+    // Rebuilds the menu in the current language — called after settings are saved.
+    public void Relocalize()
+    {
+        _notifyIcon.Text = Loc.T("tray.title", L);
+        _notifyIcon.ContextMenuStrip = BuildContextMenu();
+    }
+
     private ContextMenuStrip BuildContextMenu()
     {
         var menu = new ContextMenuStrip();
 
-        var settingsItem = new ToolStripMenuItem("Settings…");
+        var settingsItem = new ToolStripMenuItem(Loc.T("tray.settings", L));
         settingsItem.Font = new Font(settingsItem.Font, FontStyle.Bold); // highlight
         settingsItem.Click += (_, _) => SettingsRequested?.Invoke();
 
         _toggleItem = new ToolStripMenuItem(
-            _settings.OverlayEnabled ? "Disable Overlay" : "Enable Overlay");
+            Loc.T(_settings.OverlayEnabled ? "tray.disable" : "tray.enable", L));
         _toggleItem.Click += (_, _) => ToggleOverlay();
 
-        _startupItem = new ToolStripMenuItem("Start with Windows")
+        _startupItem = new ToolStripMenuItem(Loc.T("startup", L))
         {
             Checked = StartupService.IsEnabled()
         };
         _startupItem.Click += (_, _) => ToggleStartup();
 
-        var exitItem = new ToolStripMenuItem("Exit");
+        var exitItem = new ToolStripMenuItem(Loc.T("tray.exit", L));
         exitItem.Click += (_, _) => ExitRequested?.Invoke();
 
         menu.Items.Add(settingsItem);
@@ -63,7 +72,7 @@ public sealed class TrayService : IDisposable
     {
         _settings.OverlayEnabled = !_settings.OverlayEnabled;
         _settings.Save();
-        _toggleItem.Text = _settings.OverlayEnabled ? "Disable Overlay" : "Enable Overlay";
+        _toggleItem.Text = Loc.T(_settings.OverlayEnabled ? "tray.disable" : "tray.enable", L);
     }
 
     private void ToggleStartup()

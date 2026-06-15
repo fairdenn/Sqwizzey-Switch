@@ -16,6 +16,7 @@ public class AppSettings
     public string Style           { get; set; } = "macOS";
     // "Center" | "TopCenter" | "BottomCenter" | "TopLeft" | "TopRight" | "BottomLeft" | "BottomRight"
     public string PositionMode    { get; set; } = "Center";
+    public int    OffsetX         { get; set; } = 0;
     public int    OffsetY         { get; set; } = 0;
     // "Dark" | "Light" | "Auto" — light/dark modifier (ignored by Accent & Neon)
     public string Theme           { get; set; } = "Dark";
@@ -25,6 +26,9 @@ public class AppSettings
     public bool   StartWithWindows{ get; set; } = false;
     // Show the indicator on app switch and slide it to the focused window's centre
     public bool   FollowFocusEnabled { get; set; } = false;
+
+    // --- UI language: "auto" (follow system) | "en" | "ru" | "uk" | "es" | "de" | "fr" | "zh" | "pt" ---
+    public string Language { get; set; } = "auto";
 
     // -------------------------------------------------------------------------
 
@@ -67,10 +71,12 @@ public class AppSettings
         AnimationsEnabled = AnimationsEnabled,
         Style            = Style,
         PositionMode     = PositionMode,
+        OffsetX          = OffsetX,
         OffsetY          = OffsetY,
         Theme            = Theme,
         SkipFullscreen   = SkipFullscreen,
         StartWithWindows = StartWithWindows,
         FollowFocusEnabled = FollowFocusEnabled,
+        Language           = Language,
     };
 }
