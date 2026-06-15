@@ -237,11 +237,11 @@
                         </Grid.ColumnDefinitions>
                         <ui:TextBlock x:Name="LblStyleCap" Grid.Column="0" Text="Style" VerticalAlignment="Center"/>
                         <ComboBox Grid.Column="1" x:Name="CbStyle" Margin="6,0,0,0" SelectionChanged="Preview_Changed">
-                            <ComboBoxItem Content="macOS"   Tag="macOS"/>
-                            <ComboBoxItem Content="Frosted" Tag="Glass"/>
-                            <ComboBoxItem Content="Accent"  Tag="Accent"/>
-                            <ComboBoxItem Content="Minimal" Tag="Minimal"/>
-                            <ComboBoxItem Content="Neon"    Tag="Neon"/>
+                            <ComboBoxItem Content="Frosted"       Tag="Glass"/>
+                            <ComboBoxItem Content="Accent"        Tag="Accent"/>
+                            <ComboBoxItem Content="Minimal"       Tag="Minimal"/>
+                            <ComboBoxItem Content="Small Rounded" Tag="Rounded"/>
+                            <ComboBoxItem Content="Neon"          Tag="Neon"/>
                         </ComboBox>
                     </Grid>
 

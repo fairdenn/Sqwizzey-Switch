@@ -13,7 +13,7 @@ public class AppSettings
 
     // --- Appearance ---
     // "macOS" | "Glass" | "Accent" | "Minimal" | "Neon"
-    public string Style           { get; set; } = "macOS";
+    public string Style           { get; set; } = "Rounded";
     // "Center" | "TopCenter" | "BottomCenter" | "TopLeft" | "TopRight" | "BottomLeft" | "BottomRight"
     public string PositionMode    { get; set; } = "Center";
     public int    OffsetX         { get; set; } = 0;

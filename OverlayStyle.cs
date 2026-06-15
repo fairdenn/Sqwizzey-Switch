@@ -71,8 +71,9 @@ internal static class OverlayStyle
                     textFg = new SolidColorBrush(Color.FromRgb(0x1A, 0x1A, 0x1A));
                 }
                 borderThk   = 1.2;
-                glowColor   = Color.FromArgb(0x40, 0, 0, 0);
-                glowSpread  = 24;
+                glowColor   = Color.FromArgb(0x2E, 0, 0, 0);
+                glowCoreStop = 0.0;
+                glowSpread  = 28;
                 break;
             }
 
@@ -81,20 +82,32 @@ internal static class OverlayStyle
                 var a = GetAccentColor();
                 cardBg     = new SolidColorBrush(Color.FromArgb(0xEB, a.R, a.G, a.B));
                 textFg     = Brushes.White;
-                glowColor  = Color.FromArgb(0xB0, a.R, a.G, a.B);
-                glowCoreStop = 0.22;
-                glowSpread = 44;
+                glowColor  = Color.FromArgb(0x72, a.R, a.G, a.B);
+                glowCoreStop = 0.05;
+                glowSpread = 24;
                 break;
             }
 
-            case "Minimal":
+            case "Rounded": // Small Rounded — pill
                 w = 96; h = 44; radius = 22; fontSize = 22;
                 cardBg = new SolidColorBrush(isDark
-                    ? Color.FromArgb(0xC7, 0x14, 0x14, 0x16)
-                    : Color.FromArgb(0xD9, 0xFA, 0xFA, 0xFA));
+                    ? Color.FromArgb(0xED, 0x14, 0x14, 0x16)
+                    : Color.FromArgb(0xF2, 0xFA, 0xFA, 0xFA));
                 textFg     = isDark ? Brushes.White : new SolidColorBrush(Color.FromRgb(0x1A, 0x1A, 0x1A));
-                glowColor  = Color.FromArgb(0x4D, 0, 0, 0);
-                glowSpread = 26;
+                glowColor  = Color.FromArgb(0x33, 0, 0, 0);
+                glowCoreStop = 0.0;
+                glowSpread = 28;
+                break;
+
+            case "Minimal": // small dark rounded square
+                w = 92; h = 66; radius = 16; fontSize = 30;
+                cardBg = new SolidColorBrush(isDark
+                    ? Color.FromArgb(0xEC, 0x1B, 0x1B, 0x1E)
+                    : Color.FromArgb(0xF2, 0xFA, 0xFA, 0xFA));
+                textFg     = isDark ? Brushes.White : new SolidColorBrush(Color.FromRgb(0x1A, 0x1A, 0x1A));
+                glowColor  = Color.FromArgb(0x33, 0, 0, 0);
+                glowCoreStop = 0.0;
+                glowSpread = 28;
                 break;
 
             case "Neon":
@@ -104,9 +117,9 @@ internal static class OverlayStyle
                 textFg      = new SolidColorBrush(neon);
                 borderBrush = new SolidColorBrush(neon);
                 borderThk   = 1.5;
-                glowColor   = Color.FromArgb(0xC8, neon.R, neon.G, neon.B);
-                glowCoreStop = 0.25;
-                glowSpread  = 48;
+                glowColor   = Color.FromArgb(0x72, neon.R, neon.G, neon.B);
+                glowCoreStop = 0.05;
+                glowSpread  = 26;
                 break;
             }
 
@@ -115,7 +128,8 @@ internal static class OverlayStyle
                     ? Color.FromArgb(0xCC, 0x1E, 0x1E, 0x1E)
                     : Color.FromArgb(0xCC, 0xFA, 0xFA, 0xFA));
                 textFg = isDark ? Brushes.White : new SolidColorBrush(Color.FromRgb(0x1A, 0x1A, 0x1A));
-                glowColor  = Color.FromArgb(0x59, 0, 0, 0);
+                glowColor  = Color.FromArgb(0x38, 0, 0, 0);
+                glowCoreStop = 0.0;
                 glowSpread = 34;
                 break;
         }
@@ -128,6 +142,8 @@ internal static class OverlayStyle
         card.BorderThickness = new Thickness(borderThk);
         text.FontSize        = fontSize;
         text.Foreground      = textFg;
+        // Optical centering — the font sits a hair low; nudge it up.
+        text.Margin          = new Thickness(0, 0, 0, fontSize * 0.10);
 
         if (glow != null)
         {
@@ -160,9 +176,17 @@ internal static class OverlayStyle
             RadiusX        = 0.5,
             RadiusY        = 0.5
         };
-        b.GradientStops.Add(new GradientStop(core, 0.0));
-        b.GradientStops.Add(new GradientStop(core, coreStop));
-        b.GradientStops.Add(new GradientStop(transparent, 1.0));
+        byte a = core.A;
+        // Many closely-spaced stops on a smooth curve → a soft blur-like falloff with
+        // no visible rings/banding. coreStop sets how long the centre stays solid.
+        const int n = 24;
+        for (int i = 0; i <= n; i++)
+        {
+            double t = (double)i / n;
+            double f = t <= coreStop ? 1.0 : 1.0 - (t - coreStop) / (1.0 - coreStop);
+            f = f * f * f; // cubic ease-out → concentrated near the card, smooth tail
+            b.GradientStops.Add(new GradientStop(Color.FromArgb((byte)(a * f), core.R, core.G, core.B), t));
+        }
         b.Freeze();
         return b;
     }

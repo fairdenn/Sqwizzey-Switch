@@ -96,7 +96,7 @@ public partial class SettingsWindow : Wpf.Ui.Controls.FluentWindow
     private void RaisePreview()
     {
         var s = _settings.Clone();
-        s.Style          = TagOf(CbStyle)    ?? "macOS";
+        s.Style          = TagOf(CbStyle)    ?? "Rounded";
         s.Theme          = TagOf(CbTheme)    ?? "Dark";
         s.PositionMode   = TagOf(CbPosition) ?? "Center";
         s.OffsetX        = (int)SliderOffsetX.Value;
@@ -171,7 +171,7 @@ public partial class SettingsWindow : Wpf.Ui.Controls.FluentWindow
         // Fired during InitializeComponent (combo coercion) before the fields exist.
         if (PreviewCard is null || PreviewText is null) return;
 
-        OverlayStyle.Apply(TagOf(CbStyle) ?? "macOS", TagOf(CbTheme) ?? "Dark", PreviewCard, PreviewText, PreviewGlow);
+        OverlayStyle.Apply(TagOf(CbStyle) ?? "Rounded", TagOf(CbTheme) ?? "Dark", PreviewCard, PreviewText, PreviewGlow);
         if (SliderOpacity != null)
             PreviewCard.Opacity = SliderOpacity.Value; // mirror MaxOpacity
     }
@@ -261,7 +261,7 @@ public partial class SettingsWindow : Wpf.Ui.Controls.FluentWindow
         _settings.MaxOpacity     = SliderOpacity.Value;
         _settings.OffsetX        = (int)SliderOffsetX.Value;
         _settings.OffsetY        = (int)SliderOffsetY.Value;
-        _settings.Style          = TagOf(CbStyle)     ?? "macOS";
+        _settings.Style          = TagOf(CbStyle)     ?? "Rounded";
         _settings.PositionMode   = TagOf(CbPosition)  ?? "Center";
         _settings.Theme          = TagOf(CbTheme)     ?? "Dark";
         _settings.Language       = TagOf(CbLanguage)  ?? "en";
