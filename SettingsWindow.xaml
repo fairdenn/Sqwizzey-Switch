@@ -3,8 +3,9 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
         Title="Sqwizzey Switch — Settings"
-        Width="400"
+        Width="440"
         SizeToContent="Height"
+        MaxHeight="920"
         ResizeMode="NoResize"
         WindowStartupLocation="CenterScreen"
         WindowBackdropType="Mica"
@@ -135,12 +136,14 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
         <ui:TitleBar Grid.Row="0" x:Name="TitleBarMain" Title="Sqwizzey Switch — Settings"
                      ShowMaximize="False" ShowMinimize="False"/>
 
-        <StackPanel Grid.Row="1" Margin="16,4,16,16">
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="0,0,2,0">
+        <StackPanel Margin="16,4,16,8">
 
             <!-- ── Live preview ── -->
             <Border x:Name="PreviewContainer"
@@ -326,20 +329,65 @@
                     <ui:ToggleSwitch x:Name="ChkFollowFocus"    Content="Show language on app switch"    Margin="0,0,0,6"
                                      Checked="FollowFocus_Toggled" Unchecked="FollowFocus_Toggled"/>
                     <ui:ToggleSwitch x:Name="ChkSkipFullscreen" Content="Skip fullscreen apps (games)"   Margin="0,0,0,6"/>
-                    <ui:ToggleSwitch x:Name="ChkStartup"        Content="Start with Windows"/>
+                    <ui:ToggleSwitch x:Name="ChkStartup"        Content="Start with Windows"            Margin="0,0,0,6"/>
+                    <ui:ToggleSwitch x:Name="ChkCalculator"     Content="Calculator card (123)"/>
+
+                    <ui:TextBlock x:Name="LblExclusionsCap" Text="Don't show for apps (comma-separated process names):"
+                                  Margin="0,12,0,4" TextWrapping="Wrap"/>
+                    <ui:TextBox x:Name="TxtExclusions" PlaceholderText="PhoneExperienceHost"/>
                 </StackPanel>
             </ui:Card>
 
-            <!-- ── Buttons ── -->
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <ui:Button x:Name="BtnCancel" Content="Cancel"
-                           MinWidth="84" Margin="0,0,8,0" IsCancel="True"
-                           Click="BtnCancel_Click"/>
-                <ui:Button x:Name="BtnSave" Content="Save" Appearance="Primary"
-                           MinWidth="84" IsDefault="True"
-                           Click="BtnSave_Click"/>
-            </StackPanel>
+            <!-- ── Tray icon ── -->
+            <ui:Card Margin="0,0,0,14" Padding="14,10">
+                <StackPanel>
+                    <ui:TextBlock x:Name="HdrTray" Text="Tray icon" FontTypography="BodyStrong" Margin="0,0,0,8"/>
+                    <ui:ToggleSwitch x:Name="ChkTrayLang" Content="Show the active language on the tray icon" Margin="0,0,0,8"/>
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto"/>
+                            <ColumnDefinition Width="*"/>
+                        </Grid.ColumnDefinitions>
+                        <ui:TextBlock x:Name="LblTrayStyleCap" Grid.Column="0" Text="Icon style:" VerticalAlignment="Center" Margin="0,0,8,0"/>
+                        <ComboBox x:Name="CbTrayStyle" Grid.Column="1" SelectionChanged="Preview_Changed">
+                            <ComboBoxItem Tag="Flag"   Content="Flag"/>
+                            <ComboBoxItem Tag="Plain"  Content="Letter only"/>
+                            <ComboBoxItem Tag="Circle" Content="Circle"/>
+                            <ComboBoxItem Tag="Square" Content="Rounded square"/>
+                        </ComboBox>
+                    </Grid>
+                </StackPanel>
+            </ui:Card>
 
+            <!-- ── Windows integration ── -->
+            <ui:Card Margin="0,0,0,14" Padding="14,10">
+                <StackPanel>
+                    <ui:TextBlock x:Name="HdrWindows" Text="Windows integration" FontTypography="BodyStrong" Margin="0,0,0,8"/>
+
+                    <ui:TextBlock x:Name="LblPerWindowDesc" FontTypography="Caption" Opacity="0.85" TextWrapping="Wrap" Margin="0,0,0,4"
+                                  Text="Give each app window its own keyboard language, so switching in one app doesn't change it everywhere. Turn on 'Let me set a different input method for each app window' in Windows."/>
+                    <ui:Button x:Name="BtnPerWindow" Content="Open advanced keyboard settings…"
+                               Appearance="Secondary" HorizontalAlignment="Stretch" Margin="0,0,0,12" Click="BtnPerWindow_Click"/>
+
+                    <ui:TextBlock x:Name="LblTrayDesc" FontTypography="Caption" Opacity="0.85" TextWrapping="Wrap" Margin="0,0,0,4"
+                                  Text="To replace the standard Windows language indicator with this app's tray icon, install the Windhawk mod 'Taskbar tray system icon tweaks' and enable 'Hide language bar'. Windows offers no setting for this."/>
+                    <ui:Button x:Name="BtnTrayWin" Content="Get the Windhawk mod…"
+                               Appearance="Secondary" HorizontalAlignment="Stretch" Click="BtnTrayWin_Click"/>
+                </StackPanel>
+            </ui:Card>
+
+        </StackPanel>
+        </ScrollViewer>
+
+        <!-- ── Buttons (pinned) ── -->
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right"
+                    Margin="16,8,16,16">
+            <ui:Button x:Name="BtnCancel" Content="Cancel"
+                       MinWidth="84" Margin="0,0,8,0" IsCancel="True"
+                       Click="BtnCancel_Click"/>
+            <ui:Button x:Name="BtnSave" Content="Save" Appearance="Primary"
+                       MinWidth="84" IsDefault="True"
+                       Click="BtnSave_Click"/>
         </StackPanel>
     </Grid>
 </ui:FluentWindow>

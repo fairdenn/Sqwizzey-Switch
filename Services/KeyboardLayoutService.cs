@@ -16,6 +16,7 @@ public sealed class KeyboardLayoutService : IDisposable
 
     private IntPtr  _lastHwnd        = IntPtr.Zero;   // effective app window we track
     private string  _currentLanguage = string.Empty;
+    private System.Collections.Generic.Dictionary<uint, int> _lastLangs = new(); // input-thread → LANGID
     private bool    _firstPoll       = true;
     private bool    _disposed        = false;
 
@@ -43,14 +44,19 @@ public sealed class KeyboardLayoutService : IDisposable
             var eff = (!ShellWindowClassifier.IsShell(fg) && ShellWindowClassifier.IsAppWindow(fg))
                 ? fg : _lastHwnd;
 
-            var lang = LayoutUtils.LanguageOf(eff);
-            if (string.IsNullOrEmpty(lang)) return; // transient null during a switch
+            // Label for window-switch shows (top-thread layout, original behaviour) plus
+            // the per-thread layout map used to detect in-window switches across the
+            // multiple input threads modern apps use.
+            var lang  = LayoutUtils.LanguageOf(eff);
+            var langs = LayoutUtils.InputThreadLangs(eff);
+            if (string.IsNullOrEmpty(lang) && langs.Count == 0) return; // transient null during a switch
 
             if (_firstPoll)
             {
                 _firstPoll       = false;
                 _lastHwnd        = eff;
                 _currentLanguage = lang;
+                _lastLangs       = langs;
                 return; // remember initial state without showing
             }
 
@@ -62,20 +68,45 @@ public sealed class KeyboardLayoutService : IDisposable
                 // window handle so the hook and the poll never double-show.
                 _lastHwnd        = eff;
                 _currentLanguage = lang;
+                _lastLangs       = langs;
                 WindowChanged?.Invoke(eff);
                 return;
             }
 
-            if (lang != _currentLanguage)
+            // Same window: a real Win+Space changes the layout of whichever input thread
+            // the user is typing in. Compare each thread present in both snapshots; if one
+            // flipped, that's the new language. Covers single-thread apps (only the top
+            // thread) and multi-thread apps (new Notepad, Explorer…) identically.
+            int newLangId = DetectChangedLang(_lastLangs, langs);
+            _lastLangs = langs;
+
+            if (newLangId > 0)
             {
-                _currentLanguage = lang;
-                LayoutChanged?.Invoke(lang); // real in-window layout change
+                var newLang = LayoutUtils.CodeOf(newLangId);
+                if (!string.IsNullOrEmpty(newLang) && newLang != _currentLanguage)
+                {
+                    _currentLanguage = newLang;
+                    LayoutChanged?.Invoke(newLang); // real in-window layout change
+                }
             }
         }
         catch (Exception ex)
         {
             Logger.Log(ex, nameof(Poll));
         }
+    }
+
+    // Returns the new LANGID of a thread whose layout changed between two snapshots of
+    // the same window, or 0 if none did. Only threads present in BOTH are compared, so a
+    // thread appearing/leaving (e.g. switching Notepad tabs) is not mistaken for a switch.
+    private static int DetectChangedLang(
+        System.Collections.Generic.Dictionary<uint, int> before,
+        System.Collections.Generic.Dictionary<uint, int> after)
+    {
+        foreach (var kv in after)
+            if (before.TryGetValue(kv.Key, out int old) && old != kv.Value && kv.Value > 0)
+                return kv.Value;
+        return 0;
     }
 
     public string CurrentLanguage => _currentLanguage;

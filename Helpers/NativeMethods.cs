@@ -10,8 +10,67 @@ internal static class NativeMethods
     [DllImport("user32.dll", SetLastError = true)]
     public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 
+    // Reading the image name of a higher-integrity process (e.g. consent.exe, which
+    // runs as SYSTEM) needs the limited-info access right; full PROCESS_QUERY_INFORMATION
+    // is denied across the integrity boundary.
+    [DllImport("kernel32.dll", SetLastError = true)]
+    public static extern IntPtr OpenProcess(uint dwDesiredAccess, bool bInheritHandle, uint dwProcessId);
+
+    [DllImport("kernel32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+    public static extern bool QueryFullProcessImageName(IntPtr hProcess, uint dwFlags,
+        System.Text.StringBuilder lpExeName, ref uint lpdwSize);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    public static extern bool CloseHandle(IntPtr hObject);
+
+    public const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
+
     [DllImport("user32.dll", SetLastError = true)]
     public static extern IntPtr GetKeyboardLayout(uint idThread);
+
+    // Installed input locales, in cycle order. Used to advance the tracked console layout
+    // on Win+Space, since conhost never exposes its live layout to read directly.
+    [DllImport("user32.dll")]
+    public static extern int GetKeyboardLayoutList(int nBuff, [Out] IntPtr[]? lpList);
+
+    // Low-level keyboard hook — the only way to observe a layout-switch hotkey (Win+Space)
+    // globally from a background app, so we can show the card for console windows.
+    public delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern IntPtr SetWindowsHookEx(int idHook, LowLevelKeyboardProc lpfn, IntPtr hMod, uint dwThreadId);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern bool UnhookWindowsHookEx(IntPtr hhk);
+
+    [DllImport("user32.dll")]
+    public static extern IntPtr CallNextHookEx(IntPtr hhk, int nCode, IntPtr wParam, IntPtr lParam);
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+    public static extern IntPtr GetModuleHandle(string? lpModuleName);
+
+    public const int WH_KEYBOARD_LL = 13;
+    public const int WM_KEYDOWN     = 0x0100;
+    public const int WM_KEYUP       = 0x0101;
+    public const int WM_SYSKEYDOWN  = 0x0104;
+    public const int WM_SYSKEYUP    = 0x0105;
+    public const uint VK_SPACE = 0x20, VK_LWIN = 0x5B, VK_RWIN = 0x5C;
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct KBDLLHOOKSTRUCT
+    {
+        public uint   vkCode;
+        public uint   scanCode;
+        public uint   flags;
+        public uint   time;
+        public UIntPtr dwExtraInfo;
+    }
+
+    // Per-GUI-thread info: which window holds the caret/focus on that thread. Used to
+    // enumerate the input threads of multi-thread apps (modern Notepad, Explorer…) whose
+    // text control lives on a different thread than the top-level window.
+    [DllImport("user32.dll")]
+    public static extern bool GetGUIThreadInfo(uint idThread, ref GUITHREADINFO lpgui);
 
     [DllImport("user32.dll", SetLastError = true)]
     public static extern int GetWindowLong(IntPtr hWnd, int nIndex);
@@ -40,8 +99,22 @@ internal static class NativeMethods
     [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     public static extern int GetClassName(IntPtr hWnd, System.Text.StringBuilder lpClassName, int nMaxCount);
 
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    public static extern int GetWindowTextW(IntPtr hWnd, System.Text.StringBuilder lpString, int nMaxCount);
+
+    // Enumerate child windows — used to find the UWP CoreWindow hosted inside an
+    // ApplicationFrameWindow so we can identify the real app (e.g. Calculator).
+    public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    public static extern bool EnumChildWindows(IntPtr hWndParent, EnumWindowsProc lpEnumFunc, IntPtr lParam);
+
     [DllImport("user32.dll")]
     public static extern bool IsWindowVisible(IntPtr hWnd);
+
+    // Frees an HICON created via Bitmap.GetHicon() — must be called per icon to avoid GDI leaks.
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern bool DestroyIcon(IntPtr hIcon);
 
     [DllImport("user32.dll")]
     public static extern bool IsIconic(IntPtr hWnd); // window minimised?
@@ -133,6 +206,20 @@ internal static class NativeMethods
 
     // GetDpiForMonitor dpiType
     public const uint MDT_EFFECTIVE_DPI = 0;
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct GUITHREADINFO
+    {
+        public int    cbSize;
+        public uint   flags;
+        public IntPtr hwndActive;
+        public IntPtr hwndFocus;
+        public IntPtr hwndCapture;
+        public IntPtr hwndMenuOwner;
+        public IntPtr hwndMoveSize;
+        public IntPtr hwndCaret;
+        public RECT   rcCaret;
+    }
 
     [StructLayout(LayoutKind.Sequential)]
     public struct POINT

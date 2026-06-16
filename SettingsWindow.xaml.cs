@@ -44,6 +44,10 @@ public partial class SettingsWindow : Wpf.Ui.Controls.FluentWindow
         ChkFollowFocus.IsChecked    = _settings.FollowFocusEnabled;
         ChkSkipFullscreen.IsChecked = _settings.SkipFullscreen;
         ChkStartup.IsChecked        = StartupService.IsEnabled();
+        ChkCalculator.IsChecked     = _settings.CalculatorCardEnabled;
+        TxtExclusions.Text          = _settings.ExcludedProcesses;
+        ChkTrayLang.IsChecked       = _settings.TrayLanguageIcon;
+        SelectComboByTag(CbTrayStyle, _settings.TrayIconStyle);
 
         ApplyLanguage(_settings.Language);
         UpdatePreview();
@@ -141,6 +145,27 @@ public partial class SettingsWindow : Wpf.Ui.Controls.FluentWindow
         ChkFollowFocus.Content    = Loc.T("followFocus", _lang);
         ChkSkipFullscreen.Content = Loc.T("skipFs", _lang);
         ChkStartup.Content        = Loc.T("startup", _lang);
+        ChkCalculator.Content     = Loc.T("calculatorCard", _lang);
+        LblExclusionsCap.Text     = Loc.T("exclusions", _lang);
+
+        HdrTray.Text              = Loc.T("hdrTray", _lang);
+        ChkTrayLang.Content       = Loc.T("trayLang", _lang);
+        LblTrayStyleCap.Text      = Loc.T("trayStyle", _lang);
+        foreach (ComboBoxItem item in CbTrayStyle.Items)
+            item.Content = item.Tag?.ToString() switch
+            {
+                "Flag"   => Loc.T("trayFlag", _lang),
+                "Plain"  => Loc.T("trayPlain", _lang),
+                "Circle" => Loc.T("trayCircle", _lang),
+                "Square" => Loc.T("traySquare", _lang),
+                _        => item.Content,
+            };
+
+        HdrWindows.Text           = Loc.T("hdrWindows", _lang);
+        LblPerWindowDesc.Text     = Loc.T("perWindowDesc", _lang);
+        BtnPerWindow.Content      = Loc.T("perWindowBtn", _lang);
+        LblTrayDesc.Text          = Loc.T("trayDesc", _lang);
+        BtnTrayWin.Content        = Loc.T("trayWinBtn", _lang);
 
         BtnCancel.Content = Loc.T("cancel", _lang);
         BtnSave.Content   = Loc.T("save", _lang);
@@ -255,6 +280,31 @@ public partial class SettingsWindow : Wpf.Ui.Controls.FluentWindow
     private void BtnCancel_Click(object sender, RoutedEventArgs e)
         => Close();
 
+    // Opens Windows' typing settings, where "Let me use a different input method for each app
+    // window" (Advanced keyboard settings) lives. We don't toggle it ourselves: it's packed
+    // into the multi-purpose UserPreferencesMask, so writing it blind risks other UI prefs.
+    private void BtnPerWindow_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            System.Diagnostics.Process.Start(
+                new System.Diagnostics.ProcessStartInfo("ms-settings:typing") { UseShellExecute = true });
+        }
+        catch (Exception ex) { Logger.Log(ex, nameof(BtnPerWindow_Click)); }
+    }
+
+    // Opens the recommended Windhawk mod page — it hides the standard Windows language
+    // indicator (Windows itself offers no setting for this; see the mod's "Hide language bar").
+    private void BtnTrayWin_Click(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(
+                "https://windhawk.net/mods/taskbar-tray-system-icon-tweaks") { UseShellExecute = true });
+        }
+        catch (Exception ex) { Logger.Log(ex, nameof(BtnTrayWin_Click)); }
+    }
+
     private void BtnSave_Click(object sender, RoutedEventArgs e)
     {
         _settings.ShowDurationMs = (int)SliderDuration.Value;
@@ -268,6 +318,10 @@ public partial class SettingsWindow : Wpf.Ui.Controls.FluentWindow
         _settings.AnimationsEnabled  = ChkAnimations.IsChecked == true;
         _settings.FollowFocusEnabled = ChkFollowFocus.IsChecked == true;
         _settings.SkipFullscreen     = ChkSkipFullscreen.IsChecked == true;
+        _settings.CalculatorCardEnabled = ChkCalculator.IsChecked == true;
+        _settings.ExcludedProcesses     = TxtExclusions.Text?.Trim() ?? "";
+        _settings.TrayLanguageIcon      = ChkTrayLang.IsChecked == true;
+        _settings.TrayIconStyle         = TagOf(CbTrayStyle) ?? "Plain";
 
         bool wantStartup = ChkStartup.IsChecked == true;
         if (wantStartup != StartupService.IsEnabled())

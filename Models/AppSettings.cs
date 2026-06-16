@@ -26,6 +26,17 @@ public class AppSettings
     public bool   StartWithWindows{ get; set; } = false;
     // Show the indicator on app switch and slide it to the focused window's centre
     public bool   FollowFocusEnabled { get; set; } = false;
+    // Show a "123" card when the Calculator window is focused (a fun extra)
+    public bool   CalculatorCardEnabled { get; set; } = true;
+    // Render the tray icon as the active window's language (RU/EN) with a current→other
+    // tooltip, like the Windows input indicator. Off → plain app icon.
+    public bool   TrayLanguageIcon { get; set; } = false;
+    // Tray icon rendering: "Plain" (text only, like Windows) | "Circle" | "Square"
+    public string TrayIconStyle { get; set; } = "Flag";
+    // Comma-separated rules for windows that never get a card. Each entry matches a process
+    // name (exact, .exe optional), a window-title substring, or "<process>:topmost" (only
+    // topmost windows of that process). Default targets just the Phone Link call popup.
+    public string ExcludedProcesses { get; set; } = "PhoneExperienceHost:topmost";
 
     // --- UI language: "auto" (follow system) | "en" | "ru" | "uk" | "es" | "de" | "fr" | "zh" | "pt" ---
     public string Language { get; set; } = "auto";
@@ -77,6 +88,10 @@ public class AppSettings
         SkipFullscreen   = SkipFullscreen,
         StartWithWindows = StartWithWindows,
         FollowFocusEnabled = FollowFocusEnabled,
+        CalculatorCardEnabled = CalculatorCardEnabled,
+        TrayLanguageIcon   = TrayLanguageIcon,
+        TrayIconStyle      = TrayIconStyle,
+        ExcludedProcesses  = ExcludedProcesses,
         Language           = Language,
     };
 }

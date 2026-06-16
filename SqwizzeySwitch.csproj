@@ -33,4 +33,11 @@
     <PackageReference Include="WPF-UI" Version="4.3.0" />
   </ItemGroup>
 
+  <!-- Flag PNGs for the tray icon — copied next to the exe. -->
+  <ItemGroup>
+    <Content Include="Assets\flags\*.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
 </Project>

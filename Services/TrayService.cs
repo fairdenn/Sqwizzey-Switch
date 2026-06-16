@@ -1,3 +1,4 @@
+using SqwizzeySwitch.Helpers;
 using SqwizzeySwitch.Models;
 using System.Drawing;
 using System.Windows.Forms;
@@ -13,6 +14,7 @@ public sealed class TrayService : IDisposable
     private readonly AppSettings      _settings;
     private          ToolStripMenuItem _toggleItem  = null!;
     private          ToolStripMenuItem _startupItem = null!;
+    private          IntPtr            _lastIconHandle = IntPtr.Zero; // HICON to free on next swap
 
     private string L => Loc.Resolve(_settings.Language);
 
@@ -22,9 +24,9 @@ public sealed class TrayService : IDisposable
         _notifyIcon = new NotifyIcon
         {
             Visible = true,
-            Text    = Loc.T("tray.title", L),
-            Icon    = BuildTrayIcon()
+            Text    = Loc.T("tray.title", L)
         };
+        ApplyTextIcon("L", accent: false); // default icon (App calls SetLanguage if enabled)
 
         _notifyIcon.ContextMenuStrip = BuildContextMenu();
         _notifyIcon.DoubleClick     += (_, _) => ToggleOverlay();
@@ -87,32 +89,153 @@ public sealed class TrayService : IDisposable
     public void RefreshStartupCheck()
         => _startupItem.Checked = StartupService.IsEnabled();
 
-    private static Icon BuildTrayIcon()
+    /// <summary>Render the tray icon as the active language (e.g. "RU") with a current→other
+    /// tooltip. Called by App on every window/layout change when the option is on.</summary>
+    public void SetLanguage(string code, string tooltip)
     {
-        using var bmp = new Bitmap(16, 16, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+        // A single big letter (first of the code) stays crisp at the tiny tray size; the
+        // full code lives in the tooltip.
+        _notifyIcon.Text = string.IsNullOrEmpty(tooltip) ? code : tooltip;
+
+        if (string.Equals(_settings.TrayIconStyle, "Flag", StringComparison.OrdinalIgnoreCase)
+            && TryApplyFlagIcon(code))
+            return;
+
+        var glyph = string.IsNullOrEmpty(code) ? "?" : code.Substring(0, 1);
+        ApplyTextIcon(glyph, accent: true);
+    }
+
+    // Loads Assets/flags/<code>.png (shipped next to the exe) and renders it as the tray
+    // icon with rounded corners. Returns false if there's no flag for this language → caller
+    // falls back to the lettered icon, keeping the look uniform.
+    private bool TryApplyFlagIcon(string code)
+    {
+        try
+        {
+            var path = Path.Combine(AppContext.BaseDirectory, "Assets", "flags",
+                                    code.ToLowerInvariant() + ".png");
+            if (!File.Exists(path)) return false;
+
+            const int S = 32;
+            using var src = new Bitmap(path);
+            using var bmp = new Bitmap(S, S, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
+            using (var g = Graphics.FromImage(bmp))
+            {
+                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+                g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+                g.Clear(Color.Transparent);
+                using var clip = new System.Drawing.Drawing2D.GraphicsPath();
+                float r = 6;
+                clip.AddArc(0, 0, r * 2, r * 2, 180, 90);
+                clip.AddArc(S - r * 2, 0, r * 2, r * 2, 270, 90);
+                clip.AddArc(S - r * 2, S - r * 2, r * 2, r * 2, 0, 90);
+                clip.AddArc(0, S - r * 2, r * 2, r * 2, 90, 90);
+                clip.CloseFigure();
+                g.SetClip(clip);
+                // Letterbox the flag (keep aspect) centred in the square.
+                float scale = Math.Min((float)S / src.Width, (float)S / src.Height);
+                float w = src.Width * scale, h = src.Height * scale;
+                g.DrawImage(src, (S - w) / 2, (S - h) / 2, w, h);
+            }
+            IntPtr handle = bmp.GetHicon();
+            _notifyIcon.Icon = Icon.FromHandle(handle);
+            if (_lastIconHandle != IntPtr.Zero) NativeMethods.DestroyIcon(_lastIconHandle);
+            _lastIconHandle = handle;
+            return true;
+        }
+        catch { return false; }
+    }
+
+    /// <summary>Restore the plain app icon and title (option turned off).</summary>
+    public void ResetIcon()
+    {
+        ApplyTextIcon("L", accent: false);
+        _notifyIcon.Text = Loc.T("tray.title", L);
+    }
+
+    // Builds a 16×16 text icon, applies it, and frees the previous HICON (GetHicon leaks
+    // otherwise). accent=true → green tint for the live language indicator.
+    private void ApplyTextIcon(string text, bool accent)
+    {
+        var (fill, fg) = TrayPalette(_settings.Style, _settings.Theme);
+        var (icon, handle) = BuildTextIcon(text, _settings.TrayIconStyle, fill, fg);
+        _notifyIcon.Icon = icon;
+        if (_lastIconHandle != IntPtr.Zero) NativeMethods.DestroyIcon(_lastIconHandle);
+        _lastIconHandle = handle;
+    }
+
+    // Tray icon colours. Shaped styles use the classic vivid blue with white text (always
+    // readable on the taskbar, regardless of card theme); Plain uses white text only.
+    private static (Color fill, Color text) TrayPalette(string style, string theme)
+        => (Color.FromArgb(55, 110, 210), Color.White);
+
+    // style: "Plain" (text only, like Windows) | "Circle" | "Square". Rendered at 32×32 so
+    // two-letter codes (RU/EN) stay crisp; Windows scales it down for the tray.
+    private static (Icon icon, IntPtr handle) BuildTextIcon(string text, string style, Color fill, Color textColor)
+    {
+        const int S = 32;
+        using var bmp = new Bitmap(S, S, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
         using (var g = Graphics.FromImage(bmp))
         {
             g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+            g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
             g.Clear(Color.Transparent);
 
-            using var bg = new SolidBrush(Color.FromArgb(220, 55, 110, 210));
-            g.FillEllipse(bg, 1, 1, 14, 14);
+            bool plain = string.Equals(style, "Plain", StringComparison.OrdinalIgnoreCase);
+            // Plain mode follows Windows: no shape, text in the theme's foreground colour.
+            Color ink = plain ? textColor : textColor;
 
-            using var font = new Font("Segoe UI", 7f, FontStyle.Bold, GraphicsUnit.Point);
-            using var fg   = new SolidBrush(Color.White);
+            if (!plain)
+            {
+                using var bg = new SolidBrush(fill);
+                if (string.Equals(style, "Square", StringComparison.OrdinalIgnoreCase))
+                    FillRoundedRect(g, bg, 0, 0, S, S, 8);
+                else
+                    g.FillEllipse(bg, 0, 0, S - 1, S - 1); // Circle
+            }
+
             var sf = new StringFormat
             {
-                Alignment     = StringAlignment.Center,
-                LineAlignment = StringAlignment.Center
+                Alignment = StringAlignment.Center,
+                LineAlignment = StringAlignment.Center,
+                FormatFlags = StringFormatFlags.NoClip | StringFormatFlags.NoWrap,
             };
-            g.DrawString("L", font, fg, new RectangleF(1, 1, 14, 14), sf);
+
+            // Auto-fit: grow the font until the text just fills the available box (the full
+            // icon for Plain, the circle's inner square otherwise), so RU/EN are as large as
+            // possible without clipping — readable even after the 16px tray downscale.
+            float box = plain ? S * 0.96f : S * 0.80f;
+            float fontSize = box; // upper bound; shrink to fit
+            using var fg = new SolidBrush(ink);
+            for (; fontSize > 4f; fontSize -= 0.5f)
+            {
+                using var probe = new Font("Segoe UI", fontSize, FontStyle.Bold, GraphicsUnit.Pixel);
+                var sz = g.MeasureString(text, probe, S, sf);
+                if (sz.Width <= box && sz.Height <= box) break;
+            }
+            using var font = new Font("Segoe UI", fontSize, FontStyle.Bold, GraphicsUnit.Pixel);
+            g.DrawString(text, font, fg, new RectangleF(0, 0, S, S), sf);
         }
-        return Icon.FromHandle(bmp.GetHicon());
+        IntPtr h = bmp.GetHicon();
+        return (Icon.FromHandle(h), h);
+    }
+
+    private static void FillRoundedRect(Graphics g, Brush b, float x, float y, float w, float h, float r)
+    {
+        using var path = new System.Drawing.Drawing2D.GraphicsPath();
+        float d = r * 2;
+        path.AddArc(x, y, d, d, 180, 90);
+        path.AddArc(x + w - d, y, d, d, 270, 90);
+        path.AddArc(x + w - d, y + h - d, d, d, 0, 90);
+        path.AddArc(x, y + h - d, d, d, 90, 90);
+        path.CloseFigure();
+        g.FillPath(b, path);
     }
 
     public void Dispose()
     {
         _notifyIcon.Visible = false;
         _notifyIcon.Dispose();
+        if (_lastIconHandle != IntPtr.Zero) NativeMethods.DestroyIcon(_lastIconHandle);
     }
 }

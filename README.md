@@ -32,6 +32,18 @@
 - Multi-language UI: **Auto + English, Русский, Українська, Español, Deutsch, Français, 中文, Português**
 - Click-through, hidden from Alt+Tab, multi-monitor with per-monitor DPI
 
+## Tray language icon
+
+Settings has a **"Show language on the tray icon"** option — the icon shows the active window's
+language (styles: text-only like Windows, circle, rounded square), with a `current → next`
+tooltip on hover.
+
+> **Recommended:** to replace the standard Windows language indicator with just this icon,
+> install the [**Taskbar tray system icon tweaks**](https://windhawk.net/mods/taskbar-tray-system-icon-tweaks)
+> mod (Windhawk) and enable **Hide language bar**. The app can't hide the standard indicator
+> itself: Windows stores this nowhere in the registry/API — it can only be hidden by injecting
+> into Explorer (which the mod does). Our indicator + that mod pair up nicely.
+
 ## Download
 
 Grab the installer from the [latest release](../../releases/latest) — `SqwizzeySwitch-Setup-1.0.1.exe`. No administrator rights required; the app is self-contained (no .NET install needed).
