@@ -3,6 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
         Title="Sqwizzey Switch — Settings"
+        Icon="pack://application:,,,/assets/icon.png"
         Width="440"
         SizeToContent="Height"
         MaxHeight="920"
@@ -140,7 +141,11 @@
         </Grid.RowDefinitions>
 
         <ui:TitleBar Grid.Row="0" x:Name="TitleBarMain" Title="Sqwizzey Switch — Settings"
-                     ShowMaximize="False" ShowMinimize="False"/>
+                     ShowMaximize="False" ShowMinimize="False">
+            <ui:TitleBar.Icon>
+                <ui:ImageIcon Source="pack://application:,,,/assets/icon.png"/>
+            </ui:TitleBar.Icon>
+        </ui:TitleBar>
 
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" Padding="0,0,2,0">
         <StackPanel Margin="16,4,16,8">
@@ -243,7 +248,7 @@
                             <ComboBoxItem Content="Frosted"       Tag="Glass"/>
                             <ComboBoxItem Content="Accent"        Tag="Accent"/>
                             <ComboBoxItem Content="Minimal"       Tag="Minimal"/>
-                            <ComboBoxItem Content="Small Rounded" Tag="Rounded"/>
+                            <ComboBoxItem Content="Pill"          Tag="Pill"/>
                             <ComboBoxItem Content="Neon"          Tag="Neon"/>
                         </ComboBox>
                     </Grid>
@@ -316,7 +321,7 @@
                         </ComboBox>
                     </Grid>
                     <ui:TextBlock x:Name="LblThemeNote"
-                                  Text="Theme applies to macOS, Frosted and Minimal. Accent and Neon have a fixed look."
+                                  Text="Theme applies to Frosted, Minimal and Pill. Accent and Neon have a fixed look."
                                   TextWrapping="Wrap" Appearance="Secondary" FontSize="11" Margin="0,8,0,0"/>
                 </StackPanel>
             </ui:Card>

@@ -19,7 +19,7 @@
 ## Themes
 
 <p align="center">
-  <img src="assets/themes.png" alt="Theme presets: Frosted, Accent, Minimal, Small Rounded, Neon" width="90%">
+  <img src="assets/themes.png" alt="Theme presets: Frosted, Accent, Minimal, Pill, Neon" width="90%">
 </p>
 
 ## Features

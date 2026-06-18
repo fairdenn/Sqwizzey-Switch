@@ -88,7 +88,7 @@ internal static class OverlayStyle
                 break;
             }
 
-            case "Rounded": // Small Rounded — pill
+            case "Pill": // pill
                 w = 96; h = 44; radius = 22; fontSize = 22;
                 cardBg = new SolidColorBrush(isDark
                     ? Color.FromArgb(0xED, 0x14, 0x14, 0x16)

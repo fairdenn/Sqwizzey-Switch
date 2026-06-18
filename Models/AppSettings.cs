@@ -12,8 +12,8 @@ public class AppSettings
     public bool   AnimationsEnabled { get; set; } = true;
 
     // --- Appearance ---
-    // "macOS" | "Glass" | "Accent" | "Minimal" | "Neon"
-    public string Style           { get; set; } = "Rounded";
+    // "macOS" | "Glass" | "Accent" | "Minimal" | "Pill" | "Neon"
+    public string Style           { get; set; } = "Pill";
     // "Center" | "TopCenter" | "BottomCenter" | "TopLeft" | "TopRight" | "BottomLeft" | "BottomRight"
     public string PositionMode    { get; set; } = "Center";
     public int    OffsetX         { get; set; } = 0;
@@ -55,7 +55,12 @@ public class AppSettings
             {
                 var json   = File.ReadAllText(SettingsPath);
                 var loaded = JsonSerializer.Deserialize<AppSettings>(json);
-                if (loaded != null) return loaded;
+                if (loaded != null)
+                {
+                    // Legacy: the "Pill" style used to be keyed "Rounded".
+                    if (loaded.Style == "Rounded") loaded.Style = "Pill";
+                    return loaded;
+                }
             }
         }
         catch { /* fall through to defaults */ }

@@ -19,7 +19,7 @@
 ## Стили
 
 <p align="center">
-  <img src="assets/themes.png" alt="Стили: Frosted, Accent, Minimal, Small Rounded, Neon" width="90%">
+  <img src="assets/themes.png" alt="Стили: Frosted, Accent, Minimal, Pill, Neon" width="90%">
 </p>
 
 ## Возможности
