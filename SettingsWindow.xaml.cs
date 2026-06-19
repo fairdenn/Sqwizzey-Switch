@@ -14,6 +14,7 @@ public partial class SettingsWindow : Wpf.Ui.Controls.FluentWindow
     private string _lang = "en"; // resolved UI language code
     private bool _initDone;       // suppress combo events during InitializeComponent/LoadValues
     private bool _closing;        // guards against a re-entrant Close() from Deactivated
+    private string _positionMode = "Center"; // selected PositionMode (3x3 grid)
 
     public event Action<AppSettings>? SettingsSaved;
     public event Action<AppSettings>? PreviewRequested; // flash the real overlay at the chosen position
@@ -37,8 +38,11 @@ public partial class SettingsWindow : Wpf.Ui.Controls.FluentWindow
         SliderOffsetX.Value  = _settings.OffsetX;
         SliderOffsetY.Value  = _settings.OffsetY;
 
-        SelectComboByTag(CbStyle,    _settings.Style);
-        SelectComboByTag(CbPosition, _settings.PositionMode);
+        StylePick.Theme = _settings.Theme;
+        StylePick.SelectedStyle = _settings.Style;
+        StylePick.SelectionChanged += _ => UpdatePreview();
+        _positionMode = _settings.PositionMode;
+        SyncPosGrid();
         SelectComboByTag(CbTheme,    _settings.Theme);
         SelectComboByTag(CbLanguage, _settings.Language);
 
@@ -95,19 +99,31 @@ public partial class SettingsWindow : Wpf.Ui.Controls.FluentWindow
         }
     }
 
-    // Adjusting position/offset flashes the real overlay so you can see where it lands.
-    private void Position_Changed(object sender, SelectionChangedEventArgs e)
+    // 3x3 position grid: a cell was clicked. Selecting flashes the real overlay so you
+    // can see where the card lands.
+    private void Pos_Click(object sender, RoutedEventArgs e)
     {
-        if (!_initDone) return;
-        RaisePreview();
+        var b = (System.Windows.Controls.Primitives.ToggleButton)sender;
+        _positionMode = (string)b.Tag;
+        SyncPosGrid();
+        if (_initDone) RaisePreview();
+    }
+
+    // Checks the cell matching the current PositionMode; the two disabled middle-side
+    // cells (no MiddleLeft/MiddleRight in PositionMode) never check.
+    private void SyncPosGrid()
+    {
+        foreach (var child in PosGrid.Children)
+            if (child is System.Windows.Controls.Primitives.ToggleButton b)
+                b.IsChecked = b.IsEnabled && (string?)b.Tag == _positionMode;
     }
 
     private void RaisePreview()
     {
         var s = _settings.Clone();
-        s.Style          = TagOf(CbStyle)    ?? "Pill";
+        s.Style          = StylePick.SelectedStyle;
         s.Theme          = TagOf(CbTheme)    ?? "Dark";
-        s.PositionMode   = TagOf(CbPosition) ?? "Center";
+        s.PositionMode   = _positionMode;
         s.OffsetX        = (int)SliderOffsetX.Value;
         s.OffsetY        = (int)SliderOffsetY.Value;
         s.MaxOpacity     = SliderOpacity.Value;
@@ -180,8 +196,6 @@ public partial class SettingsWindow : Wpf.Ui.Controls.FluentWindow
         BtnCancel.Content = Loc.T("cancel", _lang);
         BtnApply.Content  = Loc.T("apply", _lang);
 
-        foreach (ComboBoxItem item in CbPosition.Items)
-            if (item.Tag?.ToString() is { } t) item.Content = Loc.T(t, _lang);
         foreach (ComboBoxItem item in CbTheme.Items)
             item.Content = item.Tag?.ToString() switch
             {
@@ -205,14 +219,16 @@ public partial class SettingsWindow : Wpf.Ui.Controls.FluentWindow
     private void UpdatePreview()
     {
         // Fired during InitializeComponent (combo coercion) before the fields exist.
-        if (PreviewCard is null || PreviewText is null) return;
-
-        OverlayStyle.Apply(TagOf(CbStyle) ?? "Pill", TagOf(CbTheme) ?? "Dark", PreviewCard, PreviewText, PreviewGlow);
-        if (SliderOpacity != null)
-            PreviewCard.Opacity = SliderOpacity.Value; // mirror MaxOpacity
+        if (Preview is null || StylePick is null) return;
+        Preview.Apply(StylePick.SelectedStyle, TagOf(CbTheme) ?? "Dark", SliderOpacity?.Value ?? 1.0);
     }
 
-    private void Preview_Changed(object sender, SelectionChangedEventArgs e) => UpdatePreview();
+    // Theme/tray-style combo changed: keep the style picker's theme in sync and refresh preview.
+    private void Preview_Changed(object sender, SelectionChangedEventArgs e)
+    {
+        if (StylePick != null) StylePick.Theme = TagOf(CbTheme) ?? "Dark";
+        UpdatePreview();
+    }
 
     private static void SelectComboByTag(ComboBox cb, string tag)
     {
@@ -338,8 +354,8 @@ public partial class SettingsWindow : Wpf.Ui.Controls.FluentWindow
         _settings.TransitionSpeed = SliderSpeed.Value;
         _settings.OffsetX        = (int)SliderOffsetX.Value;
         _settings.OffsetY        = (int)SliderOffsetY.Value;
-        _settings.Style          = TagOf(CbStyle)     ?? "Pill";
-        _settings.PositionMode   = TagOf(CbPosition)  ?? "Center";
+        _settings.Style          = StylePick.SelectedStyle;
+        _settings.PositionMode   = _positionMode;
         _settings.Theme          = TagOf(CbTheme)     ?? "Dark";
         _settings.Language       = TagOf(CbLanguage)  ?? "en";
         _settings.OverlayEnabled     = ChkOverlayEnabled.IsChecked == true;
