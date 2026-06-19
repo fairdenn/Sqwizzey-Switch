@@ -24,3 +24,6 @@ preview.html
 # Дубликаты затреканных ассетов (= icon.png / banner.png), хранятся локально
 assets/logo-1024.png
 assets/social.png
+
+# Brainstorming visual-companion working files
+.superpowers/
