@@ -13,28 +13,47 @@ public partial class AnimatedPreview : UserControl
     private const string Scramble = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     private DispatcherTimer? _scrambleTimer;
     private string _text = "EN";
+    private bool _animate = true;   // mirror AnimationsEnabled (spring)
+    private bool _scramble = true;  // mirror ScrambleEnabled (letters)
 
     public AnimatedPreview() => InitializeComponent();
 
-    /// <summary>Re-render the card for the given style/theme/opacity and play the entrance.</summary>
-    public void Apply(string style, string theme, double opacity)
+    /// <summary>Re-render the card for the given style/theme/opacity and play the entrance,
+    /// honouring the live toggles so the preview matches the real overlay's behaviour.</summary>
+    public void Apply(string style, string theme, double opacity, bool animate, bool scramble)
     {
         OverlayStyle.Apply(style, theme, Card, LangText, Glow);
         Card.Opacity = opacity;
+        _animate = animate;
+        _scramble = scramble;
         Play();
     }
 
     public void Play()
     {
-        // spring entrance — mirrors OverlayWindow.StartFadeIn
-        var spring = new BackEase { EasingMode = EasingMode.EaseOut, Amplitude = 0.7 };
-        var dur = new Duration(TimeSpan.FromMilliseconds(420));
-        var scale = new DoubleAnimation(0.55, 1.0, dur) { EasingFunction = spring };
-        CardScale.BeginAnimation(System.Windows.Media.ScaleTransform.ScaleXProperty, scale);
-        CardScale.BeginAnimation(System.Windows.Media.ScaleTransform.ScaleYProperty, scale);
-        CardT.BeginAnimation(System.Windows.Media.TranslateTransform.YProperty,
-            new DoubleAnimation(16, 0, dur) { EasingFunction = spring });
-        ScrambleTo(_text);
+        if (_animate)
+        {
+            // spring entrance — mirrors OverlayWindow.StartFadeIn
+            var spring = new BackEase { EasingMode = EasingMode.EaseOut, Amplitude = 0.7 };
+            var dur = new Duration(TimeSpan.FromMilliseconds(420));
+            var scale = new DoubleAnimation(0.55, 1.0, dur) { EasingFunction = spring };
+            CardScale.BeginAnimation(System.Windows.Media.ScaleTransform.ScaleXProperty, scale);
+            CardScale.BeginAnimation(System.Windows.Media.ScaleTransform.ScaleYProperty, scale);
+            CardT.BeginAnimation(System.Windows.Media.TranslateTransform.YProperty,
+                new DoubleAnimation(16, 0, dur) { EasingFunction = spring });
+        }
+        else
+        {
+            // snap — clear any running spring and sit at rest
+            CardScale.BeginAnimation(System.Windows.Media.ScaleTransform.ScaleXProperty, null);
+            CardScale.BeginAnimation(System.Windows.Media.ScaleTransform.ScaleYProperty, null);
+            CardT.BeginAnimation(System.Windows.Media.TranslateTransform.YProperty, null);
+            CardScale.ScaleX = CardScale.ScaleY = 1.0;
+            CardT.Y = 0;
+        }
+
+        if (_scramble) ScrambleTo(_text);
+        else { _scrambleTimer?.Stop(); LangText.Text = _text; }
     }
 
     private void ScrambleTo(string target)

@@ -222,7 +222,14 @@ public partial class SettingsWindow : Wpf.Ui.Controls.FluentWindow
     {
         // Fired during InitializeComponent (combo coercion) before the fields exist.
         if (Preview is null || StylePick is null) return;
-        Preview.Apply(StylePick.SelectedStyle, TagOf(CbTheme) ?? "Dark", SliderOpacity?.Value ?? 1.0);
+        Preview.Apply(StylePick.SelectedStyle, TagOf(CbTheme) ?? "Dark", SliderOpacity?.Value ?? 1.0,
+            ChkAnimations?.IsChecked == true, ChkScramble?.IsChecked == true);
+    }
+
+    // Card-animation / scramble toggles changed: replay the preview so it reflects them.
+    private void AnimToggle_Changed(object sender, RoutedEventArgs e)
+    {
+        if (_initDone) UpdatePreview();
     }
 
     // Theme/tray-style combo changed: keep the style picker's theme in sync and refresh preview.

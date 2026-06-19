@@ -294,8 +294,10 @@
             <ui:Card Margin="0,0,0,10" Padding="14,10">
                 <StackPanel>
                     <ui:TextBlock x:Name="HdrAnimations" Text="Animations" FontTypography="BodyStrong" Margin="0,0,0,8"/>
-                    <ui:ToggleSwitch x:Name="ChkAnimations"     Content="Card animation (spring)"        Margin="0,0,0,6"/>
-                    <ui:ToggleSwitch x:Name="ChkScramble"       Content="Scramble letters"               Margin="0,0,0,6"/>
+                    <ui:ToggleSwitch x:Name="ChkAnimations"     Content="Card animation (spring)"        Margin="0,0,0,6"
+                                     Checked="AnimToggle_Changed" Unchecked="AnimToggle_Changed"/>
+                    <ui:ToggleSwitch x:Name="ChkScramble"       Content="Scramble letters"               Margin="0,0,0,6"
+                                     Checked="AnimToggle_Changed" Unchecked="AnimToggle_Changed"/>
                     <ui:ToggleSwitch x:Name="ChkFollowFocus"    Content="Show language on app switch"    Margin="0,0,0,6"
                                      Checked="FollowFocus_Toggled" Unchecked="FollowFocus_Toggled"/>
                     <ui:ToggleSwitch x:Name="ChkLiquid"         Content="Liquid drop on app switch"      Margin="0,0,0,8"/>
