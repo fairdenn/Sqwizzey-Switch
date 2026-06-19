@@ -31,6 +31,8 @@ public class AppSettings
     public bool   StartWithWindows{ get; set; } = false;
     // Close the settings window when it loses focus (click outside). Off by default.
     public bool   CloseSettingsOnClickOutside { get; set; } = false;
+    // First-run onboarding wizard shown once; set true when finished/skipped.
+    public bool   OnboardingDone { get; set; } = false;
     // Show the indicator on app switch and slide it to the focused window's centre
     public bool   FollowFocusEnabled { get; set; } = false;
     // Show a "123" card when the Calculator window is focused (a fun extra)
@@ -102,6 +104,7 @@ public class AppSettings
         SkipFullscreen   = SkipFullscreen,
         StartWithWindows = StartWithWindows,
         CloseSettingsOnClickOutside = CloseSettingsOnClickOutside,
+        OnboardingDone   = OnboardingDone,
         FollowFocusEnabled = FollowFocusEnabled,
         CalculatorCardEnabled = CalculatorCardEnabled,
         TrayLanguageIcon   = TrayLanguageIcon,
