@@ -12,7 +12,6 @@ public sealed class TrayService : IDisposable
 
     private readonly NotifyIcon       _notifyIcon;
     private readonly AppSettings      _settings;
-    private          ToolStripMenuItem _toggleItem  = null!;
     private          ToolStripMenuItem _startupItem = null!;
     private          IntPtr            _lastIconHandle = IntPtr.Zero; // HICON to free on next swap
     private          Icon?             _logoIcon;                     // cached app-logo tray icon
@@ -30,7 +29,8 @@ public sealed class TrayService : IDisposable
         ApplyLogoIcon(); // default icon = app logo (App calls SetLanguage if the option is on)
 
         _notifyIcon.ContextMenuStrip = BuildContextMenu();
-        _notifyIcon.DoubleClick     += (_, _) => ToggleOverlay();
+        // Overlay on/off now lives in Settings; double-click opens it (the app has no main window).
+        _notifyIcon.DoubleClick     += (_, _) => SettingsRequested?.Invoke();
     }
 
     // Rebuilds the menu in the current language — called after settings are saved.
@@ -48,10 +48,6 @@ public sealed class TrayService : IDisposable
         settingsItem.Font = new Font(settingsItem.Font, FontStyle.Bold); // highlight
         settingsItem.Click += (_, _) => SettingsRequested?.Invoke();
 
-        _toggleItem = new ToolStripMenuItem(
-            Loc.T(_settings.OverlayEnabled ? "tray.disable" : "tray.enable", L));
-        _toggleItem.Click += (_, _) => ToggleOverlay();
-
         _startupItem = new ToolStripMenuItem(Loc.T("startup", L))
         {
             Checked = StartupService.IsEnabled()
@@ -63,19 +59,11 @@ public sealed class TrayService : IDisposable
 
         menu.Items.Add(settingsItem);
         menu.Items.Add(new ToolStripSeparator());
-        menu.Items.Add(_toggleItem);
         menu.Items.Add(_startupItem);
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add(exitItem);
 
         return menu;
-    }
-
-    private void ToggleOverlay()
-    {
-        _settings.OverlayEnabled = !_settings.OverlayEnabled;
-        _settings.Save();
-        _toggleItem.Text = Loc.T(_settings.OverlayEnabled ? "tray.disable" : "tray.enable", L);
     }
 
     private void ToggleStartup()

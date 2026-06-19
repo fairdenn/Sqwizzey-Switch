@@ -13,6 +13,12 @@
         IsHitTestVisible="False"
         Opacity="0">
     <Grid>
+        <!-- Liquid bridge layer: a metaball outline drawn in window-local coords during
+             app-switch transitions (window is temporarily resized to span both windows).
+             Hidden the rest of the time; the card renders normally. -->
+        <Path x:Name="LiquidPath" Visibility="Collapsed" IsHitTestVisible="False"
+              Stretch="None" />
+
         <!-- CardRoot holds the glow halo + the card together so the spring animation
              (scale/translate) moves both as one. -->
         <Grid x:Name="CardRoot"
@@ -20,7 +26,14 @@
               VerticalAlignment="Center"
               RenderTransformOrigin="0.5,0.5">
             <Grid.RenderTransform>
+                <!-- Order matters: the liquid "smear" rotates the card so the motion
+                     axis aligns with X, stretches along it (squashes across), then
+                     rotates back — a directional stretch along the flight path. The
+                     spring scale + translate compose on top. -->
                 <TransformGroup>
+                    <RotateTransform x:Name="SmearRotNeg" Angle="0" />
+                    <ScaleTransform  x:Name="SmearScale"  ScaleX="1" ScaleY="1" />
+                    <RotateTransform x:Name="SmearRotPos" Angle="0" />
                     <ScaleTransform x:Name="CardScale" ScaleX="1" ScaleY="1" />
                     <TranslateTransform x:Name="CardTranslate" Y="0" />
                 </TransformGroup>

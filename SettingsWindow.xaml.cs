@@ -13,6 +13,7 @@ public partial class SettingsWindow : Wpf.Ui.Controls.FluentWindow
     private readonly AppSettings _settings;
     private string _lang = "en"; // resolved UI language code
     private bool _initDone;       // suppress combo events during InitializeComponent/LoadValues
+    private bool _closing;        // guards against a re-entrant Close() from Deactivated
 
     public event Action<AppSettings>? SettingsSaved;
     public event Action<AppSettings>? PreviewRequested; // flash the real overlay at the chosen position
@@ -32,6 +33,7 @@ public partial class SettingsWindow : Wpf.Ui.Controls.FluentWindow
     {
         SliderDuration.Value = _settings.ShowDurationMs;
         SliderOpacity.Value  = _settings.MaxOpacity;
+        SliderSpeed.Value    = _settings.TransitionSpeed;
         SliderOffsetX.Value  = _settings.OffsetX;
         SliderOffsetY.Value  = _settings.OffsetY;
 
@@ -40,11 +42,14 @@ public partial class SettingsWindow : Wpf.Ui.Controls.FluentWindow
         SelectComboByTag(CbTheme,    _settings.Theme);
         SelectComboByTag(CbLanguage, _settings.Language);
 
+        ChkOverlayEnabled.IsChecked = _settings.OverlayEnabled;
         ChkAnimations.IsChecked     = _settings.AnimationsEnabled;
+        ChkLiquid.IsChecked         = _settings.LiquidTransition;
         ChkFollowFocus.IsChecked    = _settings.FollowFocusEnabled;
         ChkSkipFullscreen.IsChecked = _settings.SkipFullscreen;
         ChkStartup.IsChecked        = StartupService.IsEnabled();
         ChkCalculator.IsChecked     = _settings.CalculatorCardEnabled;
+        ChkCloseOnClickOutside.IsChecked = _settings.CloseSettingsOnClickOutside;
         TxtExclusions.Text          = _settings.ExcludedProcesses;
         ChkTrayLang.IsChecked       = _settings.TrayLanguageIcon;
         SelectComboByTag(CbTrayStyle, _settings.TrayIconStyle);
@@ -131,6 +136,7 @@ public partial class SettingsWindow : Wpf.Ui.Controls.FluentWindow
         HdrOverlay.Text     = Loc.T("overlay", _lang);
         LblDurationCap.Text = Loc.T("duration", _lang);
         LblOpacityCap.Text  = Loc.T("opacity", _lang);
+        LblSpeedCap.Text    = Loc.T("transitionSpeed", _lang);
 
         HdrAppearance.Text  = Loc.T("appearance", _lang);
         LblStyleCap.Text    = Loc.T("style", _lang);
@@ -141,11 +147,14 @@ public partial class SettingsWindow : Wpf.Ui.Controls.FluentWindow
         LblThemeNote.Text   = Loc.T("themeNote", _lang);
 
         HdrBehavior.Text          = Loc.T("behavior", _lang);
+        ChkOverlayEnabled.Content = Loc.T("overlayEnabled", _lang);
         ChkAnimations.Content     = Loc.T("animations", _lang);
+        ChkLiquid.Content         = Loc.T("liquidTransition", _lang);
         ChkFollowFocus.Content    = Loc.T("followFocus", _lang);
         ChkSkipFullscreen.Content = Loc.T("skipFs", _lang);
         ChkStartup.Content        = Loc.T("startup", _lang);
         ChkCalculator.Content     = Loc.T("calculatorCard", _lang);
+        ChkCloseOnClickOutside.Content = Loc.T("closeOnClickOutside", _lang);
         LblExclusionsCap.Text     = Loc.T("exclusions", _lang);
 
         HdrTray.Text              = Loc.T("hdrTray", _lang);
@@ -168,7 +177,7 @@ public partial class SettingsWindow : Wpf.Ui.Controls.FluentWindow
         BtnTrayWin.Content        = Loc.T("trayWinBtn", _lang);
 
         BtnCancel.Content = Loc.T("cancel", _lang);
-        BtnSave.Content   = Loc.T("save", _lang);
+        BtnApply.Content  = Loc.T("apply", _lang);
 
         foreach (ComboBoxItem item in CbPosition.Items)
             if (item.Tag?.ToString() is { } t) item.Content = Loc.T(t, _lang);
@@ -183,6 +192,7 @@ public partial class SettingsWindow : Wpf.Ui.Controls.FluentWindow
 
         UpdateDurationLabel();
         UpdateOpacityLabel();
+        UpdateSpeedLabel();
         UpdateOffsetXLabel();
         UpdateOffsetLabel();
     }
@@ -230,6 +240,18 @@ public partial class SettingsWindow : Wpf.Ui.Controls.FluentWindow
     {
         if (LblOpacity is null) return;
         LblOpacity.Text = $"{(int)(SliderOpacity.Value * 100)}%";
+    }
+
+    private void UpdateSpeedLabel()
+    {
+        if (LblSpeed is null) return;
+        LblSpeed.Text = $"{SliderSpeed.Value:0.0}×";
+    }
+
+    private void SliderSpeed_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (!_initDone) return;
+        UpdateSpeedLabel();
     }
 
     private void UpdateOffsetXLabel()
@@ -305,20 +327,27 @@ public partial class SettingsWindow : Wpf.Ui.Controls.FluentWindow
         catch (Exception ex) { Logger.Log(ex, nameof(BtnTrayWin_Click)); }
     }
 
-    private void BtnSave_Click(object sender, RoutedEventArgs e)
+    // "Apply" writes the controls back to settings, persists, and applies them live —
+    // but keeps the window open so you can keep tweaking. Close via Cancel / the title
+    // bar, or (when enabled) by clicking outside the window.
+    private void BtnApply_Click(object sender, RoutedEventArgs e)
     {
         _settings.ShowDurationMs = (int)SliderDuration.Value;
         _settings.MaxOpacity     = SliderOpacity.Value;
+        _settings.TransitionSpeed = SliderSpeed.Value;
         _settings.OffsetX        = (int)SliderOffsetX.Value;
         _settings.OffsetY        = (int)SliderOffsetY.Value;
         _settings.Style          = TagOf(CbStyle)     ?? "Pill";
         _settings.PositionMode   = TagOf(CbPosition)  ?? "Center";
         _settings.Theme          = TagOf(CbTheme)     ?? "Dark";
         _settings.Language       = TagOf(CbLanguage)  ?? "en";
+        _settings.OverlayEnabled     = ChkOverlayEnabled.IsChecked == true;
         _settings.AnimationsEnabled  = ChkAnimations.IsChecked == true;
+        _settings.LiquidTransition   = ChkLiquid.IsChecked == true;
         _settings.FollowFocusEnabled = ChkFollowFocus.IsChecked == true;
         _settings.SkipFullscreen     = ChkSkipFullscreen.IsChecked == true;
         _settings.CalculatorCardEnabled = ChkCalculator.IsChecked == true;
+        _settings.CloseSettingsOnClickOutside = ChkCloseOnClickOutside.IsChecked == true;
         _settings.ExcludedProcesses     = TxtExclusions.Text?.Trim() ?? "";
         _settings.TrayLanguageIcon      = ChkTrayLang.IsChecked == true;
         _settings.TrayIconStyle         = TagOf(CbTrayStyle) ?? "Plain";
@@ -332,7 +361,29 @@ public partial class SettingsWindow : Wpf.Ui.Controls.FluentWindow
 
         _settings.Save();
         SettingsSaved?.Invoke(_settings);
-        Close();
+    }
+
+    // Click-outside-to-close: the window deactivated (lost focus). Honour the live toggle
+    // value, not the saved one, so turning it on takes effect immediately. The overlay
+    // preview is a no-activate window, so flashing it doesn't deactivate us.
+    //
+    // _closing guards against re-entrancy: closing the window raises another Deactivated
+    // mid-close, and calling Close() again throws "cannot Close while closing". We also
+    // defer via the dispatcher so we never Close() inside the WM_ACTIVATE handler itself.
+    private void Window_Deactivated(object sender, EventArgs e)
+    {
+        if (!_initDone || _closing) return;
+        if (ChkCloseOnClickOutside.IsChecked != true) return;
+        _closing = true;
+        Dispatcher.BeginInvoke(new Action(Close));
+    }
+
+    // Any close path (Cancel, the title-bar button, click-outside) trips the guard so a
+    // trailing Deactivated can't fire a second Close().
+    protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
+    {
+        _closing = true;
+        base.OnClosing(e);
     }
 
     private static string? TagOf(ComboBox cb)

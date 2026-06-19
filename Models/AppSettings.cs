@@ -10,6 +10,11 @@ public class AppSettings
     public double MaxOpacity      { get; set; } = 0.88;
     // scrambleText + spring entrance; off → instant text & snap show/hide
     public bool   AnimationsEnabled { get; set; } = true;
+    // On app-switch, stretch the card like a liquid droplet along its flight path
+    // (needs Animations + "Show on the active window" on). Off → plain slide.
+    public bool   LiquidTransition  { get; set; } = false;
+    // App-switch animation speed multiplier (liquid + slide). >1 faster, <1 slower.
+    public double TransitionSpeed   { get; set; } = 1.0;
 
     // --- Appearance ---
     // "macOS" | "Glass" | "Accent" | "Minimal" | "Pill" | "Neon"
@@ -24,6 +29,8 @@ public class AppSettings
     // --- Behavior ---
     public bool   SkipFullscreen  { get; set; } = true;
     public bool   StartWithWindows{ get; set; } = false;
+    // Close the settings window when it loses focus (click outside). Off by default.
+    public bool   CloseSettingsOnClickOutside { get; set; } = false;
     // Show the indicator on app switch and slide it to the focused window's centre
     public bool   FollowFocusEnabled { get; set; } = false;
     // Show a "123" card when the Calculator window is focused (a fun extra)
@@ -85,6 +92,8 @@ public class AppSettings
         ShowDurationMs    = ShowDurationMs,
         MaxOpacity        = MaxOpacity,
         AnimationsEnabled = AnimationsEnabled,
+        LiquidTransition  = LiquidTransition,
+        TransitionSpeed   = TransitionSpeed,
         Style            = Style,
         PositionMode     = PositionMode,
         OffsetX          = OffsetX,
@@ -92,6 +101,7 @@ public class AppSettings
         Theme            = Theme,
         SkipFullscreen   = SkipFullscreen,
         StartWithWindows = StartWithWindows,
+        CloseSettingsOnClickOutside = CloseSettingsOnClickOutside,
         FollowFocusEnabled = FollowFocusEnabled,
         CalculatorCardEnabled = CalculatorCardEnabled,
         TrayLanguageIcon   = TrayLanguageIcon,

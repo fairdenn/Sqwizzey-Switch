@@ -12,7 +12,8 @@
         WindowBackdropType="Mica"
         ExtendsContentIntoTitleBar="True"
         ShowInTaskbar="True"
-        FontFamily="Segoe UI">
+        FontFamily="Segoe UI"
+        Deactivated="Window_Deactivated">
 
     <ui:FluentWindow.Resources>
         <!-- Accent fill shared by the slider track-fill and thumb -->
@@ -206,6 +207,7 @@
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
                         <Grid.ColumnDefinitions>
                             <ColumnDefinition Width="Auto" MinWidth="64"/>
@@ -227,6 +229,14 @@
                                 VerticalAlignment="Center" Margin="6,8,6,0"
                                 ValueChanged="SliderOpacity_ValueChanged"/>
                         <ui:TextBlock Grid.Row="1" Grid.Column="2" x:Name="LblOpacity" Text="88%"
+                                      VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,8,0,0"/>
+
+                        <ui:TextBlock x:Name="LblSpeedCap" Grid.Row="2" Grid.Column="0" Text="Transition speed" VerticalAlignment="Center" Margin="0,8,0,0"/>
+                        <Slider Grid.Row="2" Grid.Column="1" x:Name="SliderSpeed"
+                                Minimum="0.5" Maximum="2.0" TickFrequency="0.1" IsSnapToTickEnabled="True"
+                                VerticalAlignment="Center" Margin="6,8,6,0"
+                                ValueChanged="SliderSpeed_ValueChanged"/>
+                        <ui:TextBlock Grid.Row="2" Grid.Column="2" x:Name="LblSpeed" Text="1.0×"
                                       VerticalAlignment="Center" HorizontalAlignment="Right" Margin="0,8,0,0"/>
                     </Grid>
                 </StackPanel>
@@ -330,12 +340,15 @@
             <ui:Card Margin="0,0,0,14" Padding="14,10">
                 <StackPanel>
                     <ui:TextBlock x:Name="HdrBehavior" Text="Behavior" FontTypography="BodyStrong" Margin="0,0,0,8"/>
+                    <ui:ToggleSwitch x:Name="ChkOverlayEnabled"  Content="Enable overlay"                 Margin="0,0,0,6"/>
                     <ui:ToggleSwitch x:Name="ChkAnimations"     Content="Animations (scramble + spring)" Margin="0,0,0,6"/>
                     <ui:ToggleSwitch x:Name="ChkFollowFocus"    Content="Show language on app switch"    Margin="0,0,0,6"
                                      Checked="FollowFocus_Toggled" Unchecked="FollowFocus_Toggled"/>
+                    <ui:ToggleSwitch x:Name="ChkLiquid"         Content="Liquid drop on app switch"      Margin="0,0,0,6"/>
                     <ui:ToggleSwitch x:Name="ChkSkipFullscreen" Content="Skip fullscreen apps (games)"   Margin="0,0,0,6"/>
                     <ui:ToggleSwitch x:Name="ChkStartup"        Content="Start with Windows"            Margin="0,0,0,6"/>
-                    <ui:ToggleSwitch x:Name="ChkCalculator"     Content="Calculator card (123)"/>
+                    <ui:ToggleSwitch x:Name="ChkCalculator"     Content="Calculator card (123)"         Margin="0,0,0,6"/>
+                    <ui:ToggleSwitch x:Name="ChkCloseOnClickOutside" Content="Close settings when clicking outside"/>
 
                     <ui:TextBlock x:Name="LblExclusionsCap" Text="Don't show for apps (comma-separated process names):"
                                   Margin="0,12,0,4" TextWrapping="Wrap"/>
@@ -390,9 +403,9 @@
             <ui:Button x:Name="BtnCancel" Content="Cancel"
                        MinWidth="84" Margin="0,0,8,0" IsCancel="True"
                        Click="BtnCancel_Click"/>
-            <ui:Button x:Name="BtnSave" Content="Save" Appearance="Primary"
+            <ui:Button x:Name="BtnApply" Content="Apply" Appearance="Primary"
                        MinWidth="84" IsDefault="True"
-                       Click="BtnSave_Click"/>
+                       Click="BtnApply_Click"/>
         </StackPanel>
     </Grid>
 </ui:FluentWindow>

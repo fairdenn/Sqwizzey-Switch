@@ -16,6 +16,18 @@ public partial class OverlayWindow : Window, IOverlay
     private int    _offsetX;
     private int    _offsetY;
     private bool   _animationsEnabled = true;
+    private bool   _liquidTransition;
+    private double _transitionSpeed = 1.0; // app-switch animation speed multiplier
+
+    // ---- Liquid bridge transition state ----
+    private bool          _liquidActive;
+    private readonly System.Diagnostics.Stopwatch _liquidSw = new();
+    private EventHandler? _liquidRender;
+    private Point  _liqO, _liqT;          // origin & target centres, window-local DIP
+    private double _liqRadius;            // blob radius (DIP)
+    private string _liqLang = "";
+    private double _cardW = 190, _cardH = 160; // card-mode window size, restored after the bridge
+    private const double LiquidMs = 520;
 
     private System.Threading.Timer? _hideTimer;
     private bool _isVisible;
@@ -74,6 +86,8 @@ public partial class OverlayWindow : Window, IOverlay
             _offsetX           = s.OffsetX;
             _offsetY           = s.OffsetY;
             _animationsEnabled = s.AnimationsEnabled;
+            _liquidTransition  = s.LiquidTransition;
+            _transitionSpeed   = s.TransitionSpeed < 0.1 ? 1.0 : s.TransitionSpeed;
             ApplyStyle(s.Style, s.Theme);
         });
     }
@@ -91,6 +105,7 @@ public partial class OverlayWindow : Window, IOverlay
         const double pad = 44;
         Width  = w + pad * 2;
         Height = h + pad * 2;
+        if (!_liquidActive) { _cardW = Width; _cardH = Height; } // remember for post-bridge restore
     }
 
     // -------------------------------------------------------------------------
@@ -103,8 +118,10 @@ public partial class OverlayWindow : Window, IOverlay
         {
             // Clear any leftover slide from a follow-focus move so this centred
             // show isn't stuck at the previous window's position.
+            if (_liquidActive) StopLiquid();
             BeginAnimation(LeftProperty, null);
             BeginAnimation(TopProperty, null);
+            ResetSmear(); // a centred show is never a liquid slide
 
             ScrambleTo(lang);
             PositionOnActiveMonitor();
@@ -153,11 +170,25 @@ public partial class OverlayWindow : Window, IOverlay
     {
         Dispatcher.Invoke(() =>
         {
-            ScrambleTo(lang);
+            // A new show interrupts any running liquid transition.
+            if (_liquidActive) StopLiquid();
 
             // Cancel any in-flight slide so we can reset to the start position.
             BeginAnimation(LeftProperty, null);
             BeginAnimation(TopProperty, null);
+
+            // Liquid bridge: melt into a droplet at the old window, stretch a pinching
+            // neck across, and reform as the card at the new one. Needs a real gap and
+            // both window centres; otherwise fall through to the plain slide below.
+            if (_liquidTransition && _animationsEnabled
+                && fromRect is { } lfr && RectCenterDip(lfr, out var lo)
+                && RectCenterDip(toRect, out var lt) && (lt - lo).Length >= 120)
+            {
+                StartLiquidTransition(lo, lt, lang);
+                return;
+            }
+
+            ScrambleTo(lang);
 
             // Target = new window centre. Degenerate rect → just show at default.
             bool haveTarget = TryWindowCenterTarget(toRect, out double tx, out double ty);
@@ -183,15 +214,166 @@ public partial class OverlayWindow : Window, IOverlay
 
             PresentAndScheduleHide();
 
-            if (!haveTarget || !_animationsEnabled) return;
+            if (!haveTarget || !_animationsEnabled) { ResetSmear(); return; }
+
+            // Liquid drop: stretch the card along its flight path while it slides
+            // (only worth it over a real distance, else it just wobbles in place).
+            double dx = tx - Left, dy = ty - Top;
+            bool liquid = _liquidTransition && Math.Sqrt(dx * dx + dy * dy) >= 60;
+            if (liquid) StartSmear(Math.Atan2(dy, dx) * 180.0 / Math.PI);
+            else        ResetSmear();
 
             // Fly both axes from the start point to the new window centre.
             // EaseOut → quick start, soft landing.
             var ease = new CubicEase { EasingMode = EasingMode.EaseOut };
-            var dur  = new Duration(TimeSpan.FromMilliseconds(350));
+            var dur  = new Duration(TimeSpan.FromMilliseconds(350 / _transitionSpeed));
             BeginAnimation(LeftProperty, new DoubleAnimation(Left, tx, dur) { EasingFunction = ease });
             BeginAnimation(TopProperty,  new DoubleAnimation(Top,  ty, dur) { EasingFunction = ease });
         });
+    }
+
+    // Liquid "droplet" smear: orient the stretch along the travel direction (angle in
+    // degrees), then elongate the card along it and squash across, snapping back to 1:1
+    // with a jelly overshoot on landing. Runs a touch longer than the slide so the
+    // wobble settles after arrival.
+    private void StartSmear(double angleDeg)
+    {
+        SmearRotNeg.Angle = -angleDeg;
+        SmearRotPos.Angle =  angleDeg;
+
+        var total = new Duration(TimeSpan.FromMilliseconds(470));
+        var settle = new BackEase { EasingMode = EasingMode.EaseOut, Amplitude = 0.9 };
+        var launch = new CubicEase { EasingMode = EasingMode.EaseOut };
+
+        var sx = new DoubleAnimationUsingKeyFrames { Duration = total };
+        sx.KeyFrames.Add(new EasingDoubleKeyFrame(1.00, KeyTime.FromPercent(0.00)));
+        sx.KeyFrames.Add(new EasingDoubleKeyFrame(1.55, KeyTime.FromPercent(0.24), launch));
+        sx.KeyFrames.Add(new EasingDoubleKeyFrame(1.40, KeyTime.FromPercent(0.62)));
+        sx.KeyFrames.Add(new EasingDoubleKeyFrame(1.00, KeyTime.FromPercent(1.00), settle));
+
+        var sy = new DoubleAnimationUsingKeyFrames { Duration = total };
+        sy.KeyFrames.Add(new EasingDoubleKeyFrame(1.00, KeyTime.FromPercent(0.00)));
+        sy.KeyFrames.Add(new EasingDoubleKeyFrame(0.68, KeyTime.FromPercent(0.24), launch));
+        sy.KeyFrames.Add(new EasingDoubleKeyFrame(0.74, KeyTime.FromPercent(0.62)));
+        sy.KeyFrames.Add(new EasingDoubleKeyFrame(1.00, KeyTime.FromPercent(1.00), settle));
+
+        SmearScale.BeginAnimation(ScaleTransform.ScaleXProperty, sx);
+        SmearScale.BeginAnimation(ScaleTransform.ScaleYProperty, sy);
+    }
+
+    // Clear any smear so a non-liquid show isn't left stretched/rotated.
+    private void ResetSmear()
+    {
+        SmearScale.BeginAnimation(ScaleTransform.ScaleXProperty, null);
+        SmearScale.BeginAnimation(ScaleTransform.ScaleYProperty, null);
+        SmearScale.ScaleX = SmearScale.ScaleY = 1.0;
+        SmearRotNeg.Angle = SmearRotPos.Angle = 0;
+    }
+
+    // -------------------------------------------------------------------------
+    // Liquid bridge transition (app-switch): the card melts into a droplet at the
+    // old window, a pinching liquid neck stretches across, and it reforms as the
+    // card at the new window. Text is hidden during the stretch (just the droplet).
+    // -------------------------------------------------------------------------
+
+    private void StartLiquidTransition(Point origin, Point target, string lang)
+    {
+        ++_showGeneration; // invalidate any pending hide from a prior show
+
+        _liqRadius = 52;
+        double pad = _liqRadius + 44; // room for the blob + soft edge
+        double minX = Math.Min(origin.X, target.X) - pad;
+        double minY = Math.Min(origin.Y, target.Y) - pad;
+        double maxX = Math.Max(origin.X, target.X) + pad;
+        double maxY = Math.Max(origin.Y, target.Y) + pad;
+
+        // Expand the window to span both points; draw the bridge in window-local coords.
+        BeginAnimation(LeftProperty, null);
+        BeginAnimation(TopProperty,  null);
+        Left = minX; Top = minY; Width = maxX - minX; Height = maxY - minY;
+
+        _liqO   = new Point(origin.X - minX, origin.Y - minY);
+        _liqT   = new Point(target.X - minX, target.Y - minY);
+        _liqLang = lang;
+
+        CardRoot.Visibility = Visibility.Collapsed;
+        LangText.Text = "";                 // no language text while it's liquid
+        ResetSmear();
+        LiquidPath.Fill = Card.Background;   // match the current style's fill
+        LiquidPath.Data = LiquidBridge.Build(_liqO, _liqRadius, _liqO, _liqRadius, 1.0);
+        LiquidPath.Visibility = Visibility.Visible;
+
+        // Force visible & topmost; cancel any in-flight fade.
+        BeginAnimation(OpacityProperty, null);
+        Opacity = _maxOpacity;
+        _isVisible = true;
+        var h = new WindowInteropHelper(this).Handle;
+        NativeMethods.SetWindowPos(h, NativeMethods.HWND_TOPMOST, 0, 0, 0, 0,
+            NativeMethods.SWP_NOMOVE | NativeMethods.SWP_NOSIZE | NativeMethods.SWP_NOACTIVATE);
+
+        _liquidSw.Restart();
+        _liquidActive = true;
+        _liquidRender ??= (_, _) => LiquidTick();
+        CompositionTarget.Rendering += _liquidRender;
+    }
+
+    private void LiquidTick()
+    {
+        double p  = Math.Min(1.0, _liquidSw.Elapsed.TotalMilliseconds / (LiquidMs / _transitionSpeed));
+        double pe = p < 0.5 ? 2 * p * p : 1 - Math.Pow(-2 * p + 2, 2) / 2; // ease in-out
+
+        var head = new Point(_liqO.X + (_liqT.X - _liqO.X) * pe,
+                             _liqO.Y + (_liqT.Y - _liqO.Y) * pe);
+
+        double originR = _liqRadius * Math.Max(0, 1 - p / 0.55); // origin puddle drains away
+        double full    = (_liqT - _liqO).Length;
+        double sep     = (head - _liqO).Length;
+        double neck    = full <= 1 ? 0 : Math.Max(0, 1 - sep / (full * 0.42)); // thins, then snaps
+
+        LiquidPath.Data = LiquidBridge.Build(_liqO, originR, head, _liqRadius, neck);
+
+        if (p >= 1.0) EndLiquidTransition();
+    }
+
+    // Bridge arrived: drop the liquid layer, snap the window back to card size centred
+    // on the target, and pop the card in with the usual spring + scramble.
+    private void EndLiquidTransition()
+    {
+        double targetX = _liqT.X + Left, targetY = _liqT.Y + Top; // local → screen DIP
+        StopLiquid();
+
+        Width = _cardW; Height = _cardH;
+        Left  = targetX - Width / 2;
+        Top   = targetY - Height / 2;
+
+        _isVisible = false; // force the spring entrance
+        ScrambleTo(_liqLang);
+        PresentAndScheduleHide();
+    }
+
+    // Tear down the liquid layer and restore the card (without presenting).
+    private void StopLiquid()
+    {
+        if (!_liquidActive) return;
+        _liquidActive = false;
+        _liquidSw.Stop();
+        if (_liquidRender != null) CompositionTarget.Rendering -= _liquidRender;
+        LiquidPath.Visibility = Visibility.Collapsed;
+        LiquidPath.Data = null;
+        CardRoot.Visibility = Visibility.Visible;
+    }
+
+    // Centre of a window rect in DIP screen coords; false for a degenerate rect.
+    private bool RectCenterDip(NativeMethods.RECT rect, out Point center)
+    {
+        center = default;
+        if (rect.Right - rect.Left < 8 || rect.Bottom - rect.Top < 8) return false;
+        var src = PresentationSource.FromVisual(this);
+        double m11 = src?.CompositionTarget?.TransformFromDevice.M11 ?? 1.0;
+        double m22 = src?.CompositionTarget?.TransformFromDevice.M22 ?? 1.0;
+        center = new Point((rect.Left + rect.Right) / 2.0 * m11,
+                           (rect.Top + rect.Bottom) / 2.0 * m22);
+        return true;
     }
 
     // -------------------------------------------------------------------------
