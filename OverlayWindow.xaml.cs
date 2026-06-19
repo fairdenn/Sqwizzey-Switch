@@ -178,9 +178,10 @@ public partial class OverlayWindow : Window, IOverlay
             BeginAnimation(TopProperty, null);
 
             // Liquid bridge: melt into a droplet at the old window, stretch a pinching
-            // neck across, and reform as the card at the new one. Needs a real gap and
-            // both window centres; otherwise fall through to the plain slide below.
-            if (_liquidTransition && _animationsEnabled
+            // neck across, and reform as the card at the new one. Independent of the
+            // scramble/spring toggle — it's its own motion. Needs a real gap and both
+            // window centres; otherwise fall through to the plain slide below.
+            if (_liquidTransition
                 && fromRect is { } lfr && RectCenterDip(lfr, out var lo)
                 && RectCenterDip(toRect, out var lt) && (lt - lo).Length >= 120)
             {
