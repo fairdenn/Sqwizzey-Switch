@@ -146,6 +146,7 @@ public partial class SettingsWindow : Wpf.Ui.Controls.FluentWindow
         LblThemeCap.Text    = Loc.T("theme", _lang);
         LblThemeNote.Text   = Loc.T("themeNote", _lang);
 
+        HdrAnimations.Text        = Loc.T("hdrAnimations", _lang);
         HdrBehavior.Text          = Loc.T("behavior", _lang);
         ChkOverlayEnabled.Content = Loc.T("overlayEnabled", _lang);
         ChkAnimations.Content     = Loc.T("animations", _lang);
