@@ -8,8 +8,10 @@ public class AppSettings
     public bool   OverlayEnabled  { get; set; } = true;
     public int    ShowDurationMs  { get; set; } = 800;
     public double MaxOpacity      { get; set; } = 0.88;
-    // scrambleText + spring entrance; off → instant text & snap show/hide
+    // Card motion: spring entrance, slide, fade. Off → snap show/hide. Independent of scramble.
     public bool   AnimationsEnabled { get; set; } = true;
+    // scrambleText effect on the language letters. Independent of card motion above.
+    public bool   ScrambleEnabled   { get; set; } = true;
     // On app-switch, stretch the card like a liquid droplet along its flight path
     // (needs Animations + "Show on the active window" on). Off → plain slide.
     public bool   LiquidTransition  { get; set; } = false;
@@ -94,6 +96,7 @@ public class AppSettings
         ShowDurationMs    = ShowDurationMs,
         MaxOpacity        = MaxOpacity,
         AnimationsEnabled = AnimationsEnabled,
+        ScrambleEnabled   = ScrambleEnabled,
         LiquidTransition  = LiquidTransition,
         TransitionSpeed   = TransitionSpeed,
         Style            = Style,

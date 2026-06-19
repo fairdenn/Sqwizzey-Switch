@@ -48,6 +48,7 @@ public partial class SettingsWindow : Wpf.Ui.Controls.FluentWindow
 
         ChkOverlayEnabled.IsChecked = _settings.OverlayEnabled;
         ChkAnimations.IsChecked     = _settings.AnimationsEnabled;
+        ChkScramble.IsChecked       = _settings.ScrambleEnabled;
         ChkLiquid.IsChecked         = _settings.LiquidTransition;
         ChkFollowFocus.IsChecked    = _settings.FollowFocusEnabled;
         ChkSkipFullscreen.IsChecked = _settings.SkipFullscreen;
@@ -166,6 +167,7 @@ public partial class SettingsWindow : Wpf.Ui.Controls.FluentWindow
         HdrBehavior.Text          = Loc.T("behavior", _lang);
         ChkOverlayEnabled.Content = Loc.T("overlayEnabled", _lang);
         ChkAnimations.Content     = Loc.T("animations", _lang);
+        ChkScramble.Content       = Loc.T("scrambleLetters", _lang);
         ChkLiquid.Content         = Loc.T("liquidTransition", _lang);
         ChkFollowFocus.Content    = Loc.T("followFocus", _lang);
         ChkSkipFullscreen.Content = Loc.T("skipFs", _lang);
@@ -360,6 +362,7 @@ public partial class SettingsWindow : Wpf.Ui.Controls.FluentWindow
         _settings.Language       = TagOf(CbLanguage)  ?? "en";
         _settings.OverlayEnabled     = ChkOverlayEnabled.IsChecked == true;
         _settings.AnimationsEnabled  = ChkAnimations.IsChecked == true;
+        _settings.ScrambleEnabled    = ChkScramble.IsChecked == true;
         _settings.LiquidTransition   = ChkLiquid.IsChecked == true;
         _settings.FollowFocusEnabled = ChkFollowFocus.IsChecked == true;
         _settings.SkipFullscreen     = ChkSkipFullscreen.IsChecked == true;

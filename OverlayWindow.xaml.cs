@@ -16,6 +16,7 @@ public partial class OverlayWindow : Window, IOverlay
     private int    _offsetX;
     private int    _offsetY;
     private bool   _animationsEnabled = true;
+    private bool   _scrambleEnabled   = true;
     private bool   _liquidTransition;
     private double _transitionSpeed = 1.0; // app-switch animation speed multiplier
 
@@ -86,6 +87,7 @@ public partial class OverlayWindow : Window, IOverlay
             _offsetX           = s.OffsetX;
             _offsetY           = s.OffsetY;
             _animationsEnabled = s.AnimationsEnabled;
+            _scrambleEnabled   = s.ScrambleEnabled;
             _liquidTransition  = s.LiquidTransition;
             _transitionSpeed   = s.TransitionSpeed < 0.1 ? 1.0 : s.TransitionSpeed;
             ApplyStyle(s.Style, s.Theme);
@@ -452,7 +454,7 @@ public partial class OverlayWindow : Window, IOverlay
     {
         _scrambleTimer?.Stop();
 
-        if (!_animationsEnabled || string.IsNullOrEmpty(target)) { LangText.Text = target; return; }
+        if (!_scrambleEnabled || string.IsNullOrEmpty(target)) { LangText.Text = target; return; }
 
         int len    = target.Length;
         var total  = TimeSpan.FromMilliseconds(360);
