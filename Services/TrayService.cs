@@ -15,6 +15,7 @@ public sealed class TrayService : IDisposable
     private          ToolStripMenuItem _toggleItem  = null!;
     private          ToolStripMenuItem _startupItem = null!;
     private          IntPtr            _lastIconHandle = IntPtr.Zero; // HICON to free on next swap
+    private          Icon?             _logoIcon;                     // cached app-logo tray icon
 
     private string L => Loc.Resolve(_settings.Language);
 
@@ -26,7 +27,7 @@ public sealed class TrayService : IDisposable
             Visible = true,
             Text    = Loc.T("tray.title", L)
         };
-        ApplyTextIcon("L", accent: false); // default icon (App calls SetLanguage if enabled)
+        ApplyLogoIcon(); // default icon = app logo (App calls SetLanguage if the option is on)
 
         _notifyIcon.ContextMenuStrip = BuildContextMenu();
         _notifyIcon.DoubleClick     += (_, _) => ToggleOverlay();
@@ -105,19 +106,21 @@ public sealed class TrayService : IDisposable
         ApplyTextIcon(glyph, accent: true);
     }
 
-    // Loads Assets/flags/<code>.png (shipped next to the exe) and renders it as the tray
-    // icon with rounded corners. Returns false if there's no flag for this language → caller
-    // falls back to the lettered icon, keeping the look uniform.
+    // Loads the embedded assets/flags/<code>.png resource and renders it as the tray icon
+    // with rounded corners. Reading from an embedded resource (not a file on disk) is what
+    // makes flags work in the single-file portable build. Returns false if there's no flag
+    // for this language → caller falls back to the lettered icon, keeping the look uniform.
     private bool TryApplyFlagIcon(string code)
     {
         try
         {
-            var path = Path.Combine(AppContext.BaseDirectory, "Assets", "flags",
-                                    code.ToLowerInvariant() + ".png");
-            if (!File.Exists(path)) return false;
+            var uri  = new Uri($"pack://application:,,,/assets/flags/{code.ToLowerInvariant()}.png");
+            var info = System.Windows.Application.GetResourceStream(uri); // throws if missing
+            if (info == null) return false;
 
             const int S = 32;
-            using var src = new Bitmap(path);
+            using var stream = info.Stream;
+            using var src = new Bitmap(stream);
             using var bmp = new Bitmap(S, S, System.Drawing.Imaging.PixelFormat.Format32bppArgb);
             using (var g = Graphics.FromImage(bmp))
             {
@@ -146,11 +149,41 @@ public sealed class TrayService : IDisposable
         catch { return false; }
     }
 
-    /// <summary>Restore the plain app icon and title (option turned off).</summary>
+    /// <summary>Restore the app-logo icon and title (the language option is turned off).</summary>
     public void ResetIcon()
     {
-        ApplyTextIcon("L", accent: false);
+        ApplyLogoIcon();
         _notifyIcon.Text = Loc.T("tray.title", L);
+    }
+
+    // Sets the tray icon to the embedded app logo (assets/icon.ico). Loaded once and cached.
+    // Used as the default icon and whenever the live-language indicator is off. Falls back to
+    // the lettered icon if the resource can't be loaded for any reason.
+    private void ApplyLogoIcon()
+    {
+        try
+        {
+            if (_logoIcon == null)
+            {
+                var uri  = new Uri("pack://application:,,,/assets/icon.ico");
+                var info = System.Windows.Application.GetResourceStream(uri);
+                if (info != null)
+                {
+                    using var s = info.Stream;
+                    _logoIcon = new Icon(s, new Size(32, 32)); // multi-res .ico; tray picks a small frame
+                }
+            }
+            if (_logoIcon != null)
+            {
+                _notifyIcon.Icon = _logoIcon;
+                // The logo is a managed Icon (not a GetHicon handle) — just drop any prior HICON.
+                if (_lastIconHandle != IntPtr.Zero) { NativeMethods.DestroyIcon(_lastIconHandle); _lastIconHandle = IntPtr.Zero; }
+                return;
+            }
+        }
+        catch { /* fall through to the lettered fallback */ }
+
+        ApplyTextIcon("L", accent: false);
     }
 
     // Builds a 16×16 text icon, applies it, and frees the previous HICON (GetHicon leaks
@@ -237,5 +270,6 @@ public sealed class TrayService : IDisposable
         _notifyIcon.Visible = false;
         _notifyIcon.Dispose();
         if (_lastIconHandle != IntPtr.Zero) NativeMethods.DestroyIcon(_lastIconHandle);
+        _logoIcon?.Dispose();
     }
 }

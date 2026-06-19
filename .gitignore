@@ -15,3 +15,12 @@ installer/
 # OS
 .DS_Store
 Thumbs.db
+
+# Local design/draft sources (не для репо)
+sqwizzey-*.html
+Sqwizzey Switch - для записи.html
+preview.html
+
+# Дубликаты затреканных ассетов (= icon.png / banner.png), хранятся локально
+assets/logo-1024.png
+assets/social.png

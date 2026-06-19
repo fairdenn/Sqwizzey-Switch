@@ -34,16 +34,17 @@
     <PackageReference Include="WPF-UI" Version="4.3.0" />
   </ItemGroup>
 
-  <!-- Flag PNGs for the tray icon — copied next to the exe. -->
+  <!-- Flag PNGs for the tray icon — embedded so they ship inside the single-file
+       portable exe (loose Content files don't travel with a single-file build). -->
   <ItemGroup>
-    <Content Include="Assets\flags\*.png">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
+    <Resource Include="assets\flags\*.png" />
   </ItemGroup>
 
-  <!-- App logo, embedded so windows can show it via a pack URI. -->
+  <!-- App logo + icon, embedded so windows and the tray can load them via a pack URI
+       (works in the single-file portable build, unlike loose files on disk). -->
   <ItemGroup>
     <Resource Include="assets\icon.png" />
+    <Resource Include="assets\icon.ico" />
   </ItemGroup>
 
 </Project>
