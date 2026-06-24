@@ -145,6 +145,14 @@ internal static class OverlayStyle
         // Optical centering — the font sits a hair low; nudge it up.
         text.Margin          = new Thickness(0, 0, 0, fontSize * 0.10);
 
+        // A pure-black drop-shadow halo is meant to lift a near-white card off a light
+        // background. On a DARK theme it sits as a dark blob under an already-dark card —
+        // no contrast gained, and it reads as a travelling "blur" rectangle behind the
+        // overlay. So drop the shadow halos on dark themes; keep the coloured Neon/Accent
+        // halos (non-black) always — those are a deliberate look, not a shadow.
+        if (isDark && glowColor.R == 0 && glowColor.G == 0 && glowColor.B == 0)
+            hasGlow = false;
+
         if (glow != null)
         {
             if (hasGlow)
