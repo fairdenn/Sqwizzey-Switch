@@ -166,6 +166,7 @@ internal static class NativeMethods
     // Window corner preference values
     public const int DWMWCP_ROUND                   = 2;
     // System backdrop types
+    public const int DWMSBT_NONE                    = 1; // no backdrop (kill the Mica/acrylic fill)
     public const int DWMSBT_TRANSIENTWINDOW         = 3; // acrylic
 
     // Window style indices

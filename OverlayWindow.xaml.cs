@@ -71,6 +71,17 @@ public partial class OverlayWindow : Window, IOverlay
         NativeMethods.SetWindowPos(hwnd, NativeMethods.HWND_TOPMOST, 0, 0, 0, 0,
             NativeMethods.SWP_NOMOVE | NativeMethods.SWP_NOSIZE
             | NativeMethods.SWP_NOACTIVATE | NativeMethods.SWP_FRAMECHANGED);
+
+        // Defensive: pin this layered window to "no DWM system backdrop". It otherwise sits
+        // at the default DWMSBT_AUTO, and on Win11 that lets DWM composite a Mica/acrylic
+        // fill across the whole window — a flat tinted rectangle that wouldn't fade with the
+        // card. The global WindowBackdropType.None in App.OnStartup is a WPF-UI app-level
+        // call that does NOT reach this window's per-window DWM attribute, so set it here.
+        // (The card's own travelling "blur" turned out to be its drop-shadow halo, fixed in
+        // OverlayStyle — this just makes sure a system backdrop can never reappear either.)
+        int backdrop = NativeMethods.DWMSBT_NONE;
+        NativeMethods.DwmSetWindowAttribute(hwnd, NativeMethods.DWMWA_SYSTEMBACKDROP_TYPE,
+            ref backdrop, sizeof(int));
     }
 
     // -------------------------------------------------------------------------
